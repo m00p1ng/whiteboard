@@ -13,6 +13,39 @@ interface ShapeRendererProps {
   onContextMenu?: (e: KonvaEventObject<PointerEvent>) => void;
 }
 
+function renderShapeText(shape: Extract<Shape, { type: 'rect' | 'circle' }>) {
+  if (!shape.text) return null;
+
+  const bounds =
+    shape.type === 'rect'
+      ? {
+          x: shape.x,
+          y: shape.y,
+          width: shape.width,
+          height: shape.height,
+        }
+      : {
+          x: shape.x - shape.radiusX,
+          y: shape.y - shape.radiusY,
+          width: shape.radiusX * 2,
+          height: shape.radiusY * 2,
+        };
+
+  return (
+    <Text
+      {...bounds}
+      text={shape.text}
+      fill={shape.textColor ?? '#000000'}
+      fontSize={shape.fontSize ?? 16}
+      rotation={shape.rotation ?? 0}
+      align="center"
+      verticalAlign="middle"
+      wrap="word"
+      listening={false}
+    />
+  );
+}
+
 export function ShapeRenderer({ shape, isSelected, draggable = true, onSelect, onDblClick, onChange, onContextMenu }: ShapeRendererProps) {
   const handleDragEnd = (e: KonvaEventObject<DragEvent>) => {
     onChange?.({ x: e.target.x(), y: e.target.y() });
@@ -57,14 +90,22 @@ export function ShapeRenderer({ shape, isSelected, draggable = true, onSelect, o
 
   switch (shape.type) {
     case 'rect':
-      return <Rect {...common} width={shape.width} height={shape.height} />;
+      return (
+        <>
+          <Rect {...common} width={shape.width} height={shape.height} />
+          {renderShapeText(shape)}
+        </>
+      );
     case 'circle':
       return (
-        <Ellipse
-          {...common}
-          radiusX={shape.radiusX}
-          radiusY={shape.radiusY}
-        />
+        <>
+          <Ellipse
+            {...common}
+            radiusX={shape.radiusX}
+            radiusY={shape.radiusY}
+          />
+          {renderShapeText(shape)}
+        </>
       );
     case 'line':
       return <Line {...common} points={shape.points} fill={undefined} />;

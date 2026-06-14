@@ -7,6 +7,7 @@ interface ShapeContextMenuProps {
   onBringForward: () => void;
   onSendBackward: () => void;
   onSendToBack: () => void;
+  onDelete: () => void;
 }
 
 const itemClass =
@@ -21,6 +22,7 @@ export function ShapeContextMenu({
   onBringForward,
   onSendBackward,
   onSendToBack,
+  onDelete,
 }: ShapeContextMenuProps) {
   return (
     <div
@@ -49,6 +51,14 @@ export function ShapeContextMenu({
       </button>
       <button type="button" className={itemClass} onClick={onSendToBack}>
         Send to Back
+      </button>
+      <div className="my-1 border-t border-gray-200" />
+      <button
+        type="button"
+        className={`${itemClass} text-red-600 hover:bg-red-50`}
+        onClick={onDelete}
+      >
+        Delete
       </button>
     </div>
   );

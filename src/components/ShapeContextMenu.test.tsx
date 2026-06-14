@@ -8,6 +8,7 @@ describe('ShapeContextMenu', () => {
     const onBringForward = vi.fn();
     const onSendBackward = vi.fn();
     const onSendToBack = vi.fn();
+    const onDelete = vi.fn();
 
     render(
       <ShapeContextMenu
@@ -19,6 +20,7 @@ describe('ShapeContextMenu', () => {
         onBringForward={onBringForward}
         onSendBackward={onSendBackward}
         onSendToBack={onSendToBack}
+        onDelete={onDelete}
       />
     );
 
@@ -36,6 +38,9 @@ describe('ShapeContextMenu', () => {
 
     fireEvent.click(screen.getByText('Send to Back'));
     expect(onSendToBack).toHaveBeenCalled();
+
+    fireEvent.click(screen.getByText('Delete'));
+    expect(onDelete).toHaveBeenCalled();
   });
 
   it('disables Bring Forward / Send Backward at the edges', () => {
@@ -52,6 +57,7 @@ describe('ShapeContextMenu', () => {
         onBringForward={onBringForward}
         onSendBackward={onSendBackward}
         onSendToBack={() => undefined}
+        onDelete={() => undefined}
       />
     );
 

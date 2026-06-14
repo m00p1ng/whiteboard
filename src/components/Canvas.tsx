@@ -6,7 +6,8 @@ import { useEditorStore } from '@/store/editorStore';
 import { ShapeRenderer } from './ShapeRenderer';
 import { SelectionTransformer } from './SelectionTransformer';
 import { TextEditor } from './TextEditor';
-import type { TextShape } from '@/types/shape';
+import { ShapeTextEditor } from './ShapeTextEditor';
+import type { CircleShape, RectShape, TextShape } from '@/types/shape';
 import { getAnchorPoint, zoomAtPoint } from '@/utils/geometry';
 import type { Point } from '@/utils/geometry';
 import {
@@ -28,6 +29,7 @@ export function Canvas() {
   const setSelectedId = useEditorStore((s) => s.setSelectedId);
   const addShape = useEditorStore((s) => s.addShape);
   const updateShape = useEditorStore((s) => s.updateShape);
+  const removeShape = useEditorStore((s) => s.removeShape);
   const tool = useEditorStore((s) => s.tool);
   const setViewport = useEditorStore((s) => s.setViewport);
   const bringToFront = useEditorStore((s) => s.bringToFront);
@@ -38,6 +40,9 @@ export function Canvas() {
   const [connectorPointer, setConnectorPointer] = useState<Point | null>(null);
   const [spacePressed, setSpacePressed] = useState(false);
   const [editingTextId, setEditingTextId] = useState<string | null>(null);
+  const [editingShapeTextId, setEditingShapeTextId] = useState<string | null>(
+    null
+  );
   const [shapeDraft, setShapeDraft] = useState<ShapeDraft | null>(null);
   const [contextMenu, setContextMenu] = useState<{
     shapeId: string;
@@ -290,6 +295,10 @@ export function Canvas() {
     const shape = shapes[shapeId];
     if (shape?.type === 'text') {
       setEditingTextId(shapeId);
+      return;
+    }
+    if (shape?.type === 'rect' || shape?.type === 'circle') {
+      setEditingShapeTextId(shapeId);
     }
   };
 
@@ -331,7 +340,10 @@ export function Canvas() {
               key={shape.id}
               shape={shape}
               isSelected={shape.id === selectedId || shape.id === connectorSource}
-              draggable={tool === 'select' && !spacePressed}
+              draggable={
+                !spacePressed &&
+                (tool === 'select' || shape.id === selectedId)
+              }
               onSelect={() => handleShapeClick(shape.id)}
               onDblClick={() => handleShapeDblClick(shape.id)}
               onChange={(updates) => updateShape(shape.id, updates)}
@@ -356,6 +368,21 @@ export function Canvas() {
           onClose={() => setEditingTextId(null)}
         />
       )}
+      {editingShapeTextId &&
+        (shapes[editingShapeTextId]?.type === 'rect' ||
+          shapes[editingShapeTextId]?.type === 'circle') && (
+          <ShapeTextEditor
+            shape={
+              shapes[editingShapeTextId] as RectShape | CircleShape
+            }
+            viewport={viewport}
+            onCommit={(text) => {
+              updateShape(editingShapeTextId, { text });
+              setEditingShapeTextId(null);
+            }}
+            onClose={() => setEditingShapeTextId(null)}
+          />
+        )}
       {contextMenu && (
         <ShapeContextMenu
           x={contextMenu.x}
@@ -376,6 +403,11 @@ export function Canvas() {
           }}
           onSendToBack={() => {
             sendToBack(contextMenu.shapeId);
+            setContextMenu(null);
+          }}
+          onDelete={() => {
+            removeShape(contextMenu.shapeId);
+            setSelectedId(null);
             setContextMenu(null);
           }}
         />

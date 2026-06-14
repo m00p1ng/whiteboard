@@ -16,13 +16,19 @@ export interface BaseShape {
   strokeWidth?: number;
 }
 
-export interface RectShape extends BaseShape {
+export interface ShapeTextStyle {
+  text?: string;
+  fontSize?: number;
+  textColor?: string;
+}
+
+export interface RectShape extends BaseShape, ShapeTextStyle {
   type: 'rect';
   width: number;
   height: number;
 }
 
-export interface CircleShape extends BaseShape {
+export interface CircleShape extends BaseShape, ShapeTextStyle {
   type: 'circle';
   radiusX: number;
   radiusY: number;

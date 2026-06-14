@@ -81,11 +81,15 @@ vi.mock('react-konva', () => ({
 vi.mock('./ShapeRenderer', () => ({
   ShapeRenderer: ({
     shape,
+    draggable,
     onSelect,
+    onDblClick,
     onContextMenu,
   }: {
     shape: { id: string };
+    draggable: boolean;
     onSelect: () => void;
+    onDblClick?: () => void;
     onContextMenu?: (e: {
       evt: { preventDefault: () => void; clientX: number; clientY: number };
     }) => void;
@@ -94,7 +98,13 @@ vi.mock('./ShapeRenderer', () => ({
       <button
         type="button"
         data-testid={`shape-${shape.id}`}
+        data-draggable={String(draggable)}
         onClick={onSelect}
+      />
+      <button
+        type="button"
+        aria-label={`edit-${shape.id}`}
+        onDoubleClick={onDblClick}
       />
       <button
         type="button"
@@ -117,6 +127,7 @@ vi.mock('./ShapeContextMenu', () => ({
     onBringForward,
     onSendBackward,
     onSendToBack,
+    onDelete,
   }: {
     canBringForward: boolean;
     canSendBackward: boolean;
@@ -124,6 +135,7 @@ vi.mock('./ShapeContextMenu', () => ({
     onBringForward: () => void;
     onSendBackward: () => void;
     onSendToBack: () => void;
+    onDelete: () => void;
   }) => (
     <div role="menu">
       <button type="button" onClick={onBringToFront}>
@@ -138,12 +150,37 @@ vi.mock('./ShapeContextMenu', () => ({
       <button type="button" onClick={onSendToBack}>
         Send to Back
       </button>
+      <button type="button" onClick={onDelete}>
+        Delete
+      </button>
     </div>
   ),
 }));
 
 vi.mock('./TextEditor', () => ({
   TextEditor: () => null,
+}));
+
+vi.mock('./ShapeTextEditor', () => ({
+  ShapeTextEditor: ({
+    shape,
+    onCommit,
+    onClose,
+  }: {
+    shape: { id: string; text?: string };
+    onCommit: (text: string) => void;
+    onClose: () => void;
+  }) => (
+    <div data-testid="shape-text-editor">
+      <span>{shape.id}</span>
+      <button type="button" onClick={() => onCommit('Updated shape text')}>
+        Commit shape text
+      </button>
+      <button type="button" onClick={onClose}>
+        Close shape text
+      </button>
+    </div>
+  ),
 }));
 
 vi.mock('./CreationPreview', () => ({
@@ -175,7 +212,7 @@ const existingShape: RectShape = {
 beforeEach(() => {
   useEditorStore.getState().reset();
   useEditorStore.setState({
-    shapes: { [existingShape.id]: existingShape },
+    shapes: { [existingShape.id]: { ...existingShape } },
     selectedId: existingShape.id,
   });
   konvaMock.pointer = { x: 120, y: 80 };
@@ -193,6 +230,71 @@ function gesture(
   konvaMock.pointer = end;
   fireEvent.click(screen.getByRole('button', { name: 'pointer move' }));
 }
+
+describe('Canvas selected shape interaction', () => {
+  it('keeps the selected shape draggable while a creation tool is active', () => {
+    useEditorStore.getState().setTool('circle');
+    render(<Canvas />);
+
+    expect(screen.getByTestId('shape-existing')).toHaveAttribute(
+      'data-draggable',
+      'true'
+    );
+  });
+
+  it('does not make an unselected shape draggable outside the select tool', () => {
+    useEditorStore.setState({
+      shapes: {
+        existing: existingShape,
+        other: { ...existingShape, id: 'other' },
+      },
+      selectedId: 'existing',
+      tool: 'rect',
+    });
+    render(<Canvas />);
+
+    expect(screen.getByTestId('shape-other')).toHaveAttribute(
+      'data-draggable',
+      'false'
+    );
+  });
+
+  it.each(['rect', 'circle'] as const)(
+    'opens the in-shape editor for a %s and commits text',
+    (type) => {
+      const shape =
+        type === 'rect'
+          ? existingShape
+          : {
+              id: 'existing',
+              type: 'circle' as const,
+              x: 50,
+              y: 40,
+              radiusX: 20,
+              radiusY: 10,
+            };
+      useEditorStore.setState({
+        shapes: { existing: shape },
+        selectedId: 'existing',
+      });
+      render(<Canvas />);
+
+      fireEvent.doubleClick(
+        screen.getByRole('button', { name: 'edit-existing' })
+      );
+      expect(screen.getByTestId('shape-text-editor')).toHaveTextContent(
+        'existing'
+      );
+
+      fireEvent.click(screen.getByText('Commit shape text'));
+
+      expect(useEditorStore.getState().shapes.existing).toMatchObject({
+        text: 'Updated shape text',
+      });
+      expect(screen.queryByTestId('shape-text-editor')).not.toBeInTheDocument();
+    }
+  );
+});
 
 describe('Canvas shape creation', () => {
   it.each([
@@ -505,5 +607,22 @@ describe('Canvas shape context menu', () => {
     fireEvent.click(screen.getByRole('button', { name: 'pointer down' }));
 
     expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+  });
+
+  it('deletes the shape, clears selection, and closes the menu', () => {
+    render(<Canvas />);
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'context-menu-existing' })
+    );
+    fireEvent.click(screen.getByText('Delete'));
+
+    expect(useEditorStore.getState().shapes.existing).toBeUndefined();
+    expect(useEditorStore.getState().selectedId).toBeNull();
+    expect(useEditorStore.getState().undoStack).toHaveLength(1);
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+
+    useEditorStore.getState().undo();
+    expect(useEditorStore.getState().shapes.existing).toEqual(existingShape);
   });
 });
