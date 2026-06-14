@@ -86,6 +86,20 @@ describe('ShapePropertiesPanel', () => {
     expect(screen.getByLabelText('Height')).toHaveValue(50);
   });
 
+  it('uses shadcn form controls without changing the floating panel', () => {
+    useEditorStore.setState({ shapes: { r1: rect }, selectedId: 'r1' });
+    const { container } = render(<ShapePropertiesPanel />);
+
+    expect(screen.getByLabelText('Width')).toHaveClass('border-input');
+    expect(screen.getByLabelText('Fill hex')).toHaveClass('border-input');
+    expect(container.querySelector('aside')).toHaveClass(
+      'absolute',
+      'right-3',
+      'top-1/2',
+      'w-56'
+    );
+  });
+
   it('updates the shape live while editing and commits a single undo step on blur', () => {
     useEditorStore.setState({ shapes: { r1: rect }, selectedId: 'r1' });
     render(<ShapePropertiesPanel />);

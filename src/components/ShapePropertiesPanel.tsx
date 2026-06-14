@@ -1,4 +1,7 @@
-import { useRef } from 'react';
+import { useId, useRef } from 'react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { useEditorStore } from '@/store/editorStore';
 
 interface NumberFieldProps {
@@ -9,14 +12,17 @@ interface NumberFieldProps {
 }
 
 function NumberField({ label, value, onLiveChange, onCommit }: NumberFieldProps) {
+  const id = useId();
   const prevRef = useRef(value);
 
   return (
-    <label className="flex flex-col gap-1 text-xs text-gray-600">
-      {label}
-      <input
+    <div className="flex flex-col gap-1">
+      <Label htmlFor={id} className="text-xs text-muted-foreground">
+        {label}
+      </Label>
+      <Input
+        id={id}
         type="number"
-        className="rounded border px-2 py-1 text-sm"
         value={value}
         onFocus={() => {
           prevRef.current = value;
@@ -30,7 +36,7 @@ function NumberField({ label, value, onLiveChange, onCommit }: NumberFieldProps)
           if (event.key === 'Enter') event.currentTarget.blur();
         }}
       />
-    </label>
+    </div>
   );
 }
 
@@ -42,16 +48,19 @@ interface ColorFieldProps {
 }
 
 function ColorField({ label, value, onLiveChange, onCommit }: ColorFieldProps) {
+  const id = useId();
   const prevRef = useRef(value);
 
   return (
-    <label className="flex flex-col gap-1 text-xs text-gray-600">
-      {label}
+    <div className="flex flex-col gap-1">
+      <Label htmlFor={id} className="text-xs text-muted-foreground">
+        {label}
+      </Label>
       <div className="flex gap-2">
         <input
           type="color"
           aria-label={`${label} swatch`}
-          className="h-8 w-8 rounded border p-0"
+          className="h-9 w-9 rounded-md border border-input bg-transparent p-1"
           value={value}
           onFocus={() => {
             prevRef.current = value;
@@ -59,10 +68,11 @@ function ColorField({ label, value, onLiveChange, onCommit }: ColorFieldProps) {
           onInput={(event) => onLiveChange(event.currentTarget.value)}
           onChange={(event) => onCommit(prevRef.current, event.currentTarget.value)}
         />
-        <input
+        <Input
+          id={id}
           type="text"
           aria-label={`${label} hex`}
-          className="flex-1 rounded border px-2 py-1 text-sm"
+          className="flex-1"
           value={value}
           onFocus={() => {
             prevRef.current = value;
@@ -74,7 +84,7 @@ function ColorField({ label, value, onLiveChange, onCommit }: ColorFieldProps) {
           }}
         />
       </div>
-    </label>
+    </div>
   );
 }
 
@@ -91,13 +101,16 @@ function TextAreaField({
   onLiveChange,
   onCommit,
 }: TextAreaFieldProps) {
+  const id = useId();
   const prevRef = useRef(value);
 
   return (
-    <label className="flex flex-col gap-1 text-xs text-gray-600">
-      {label}
-      <textarea
-        className="rounded border px-2 py-1 text-sm"
+    <div className="flex flex-col gap-1">
+      <Label htmlFor={id} className="text-xs text-muted-foreground">
+        {label}
+      </Label>
+      <Textarea
+        id={id}
         rows={2}
         value={value}
         onFocus={() => {
@@ -106,7 +119,7 @@ function TextAreaField({
         onChange={(event) => onLiveChange(event.target.value)}
         onBlur={() => onCommit(prevRef.current, value)}
       />
-    </label>
+    </div>
   );
 }
 
