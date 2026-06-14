@@ -1,7 +1,10 @@
 import { create } from 'zustand';
+import {
+  deleteBoard as deleteBoardRecord,
+  loadBoards,
+  putBoard,
+} from '@/db/boardDb';
 import type { Shape } from '@/types/shape';
-
-const STORAGE_KEY = 'whiteboard:boards';
 
 export interface Board {
   id: string;
@@ -64,28 +67,17 @@ function normalizeBoard(board: Board): Board {
   };
 }
 
-function loadBoards(): Board[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as unknown;
-    if (!Array.isArray(parsed)) return [];
-    return (parsed as Board[]).map(normalizeBoard);
-  } catch {
-    return [];
-  }
+function ignorePersistenceError(promise: Promise<void>): void {
+  void promise.catch(() => undefined);
 }
 
-function persistBoards(boards: Board[]) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(boards));
-  } catch {
-    // Ignore quota/private-mode errors.
-  }
+export async function initBoardStore(): Promise<void> {
+  const boards = await loadBoards();
+  useBoardStore.setState({ boards: boards.map(normalizeBoard) });
 }
 
 export const useBoardStore = create<BoardState>((set, get) => ({
-  boards: loadBoards(),
+  boards: [],
   currentBoardId: null,
   createBoard: (name) => {
     const id = crypto.randomUUID();
@@ -96,9 +88,8 @@ export const useBoardStore = create<BoardState>((set, get) => ({
       updatedAt: Date.now(),
       shapes: {},
     };
-    const next = [...get().boards, board];
-    set({ boards: next, currentBoardId: id });
-    persistBoards(next);
+    set({ boards: [...get().boards, board], currentBoardId: id });
+    ignorePersistenceError(putBoard(board));
     return id;
   },
   openBoard: (id) => {
@@ -110,32 +101,49 @@ export const useBoardStore = create<BoardState>((set, get) => ({
   renameBoard: (id, name) => {
     const trimmed = name.trim();
     if (!trimmed) return;
-    const next = get().boards.map((board) =>
-      board.id === id
-        ? { ...board, name: trimmed, updatedAt: Date.now() }
-        : board
-    );
-    set({ boards: next });
-    persistBoards(next);
+
+    const existing = get().boards.find((board) => board.id === id);
+    if (!existing) return;
+
+    const updatedBoard = {
+      ...existing,
+      name: trimmed,
+      updatedAt: Date.now(),
+    };
+    set({
+      boards: get().boards.map((board) =>
+        board.id === id ? updatedBoard : board
+      ),
+    });
+    ignorePersistenceError(putBoard(updatedBoard));
   },
   deleteBoard: (id) => {
-    const next = get().boards.filter((board) => board.id !== id);
-    const updates: Partial<BoardState> = { boards: next };
+    const updates: Partial<BoardState> = {
+      boards: get().boards.filter((board) => board.id !== id),
+    };
     if (get().currentBoardId === id) {
       updates.currentBoardId = null;
     }
     set(updates);
-    persistBoards(next);
+    ignorePersistenceError(deleteBoardRecord(id));
   },
   saveCurrentBoard: (shapes) => {
-    const { currentBoardId } = get();
+    const { currentBoardId, boards } = get();
     if (!currentBoardId) return;
-    const next = get().boards.map((board) =>
-      board.id === currentBoardId
-        ? { ...board, shapes, updatedAt: Date.now() }
-        : board
-    );
-    set({ boards: next });
-    persistBoards(next);
+
+    const existing = boards.find((board) => board.id === currentBoardId);
+    if (!existing) return;
+
+    const updatedBoard = {
+      ...existing,
+      shapes,
+      updatedAt: Date.now(),
+    };
+    set({
+      boards: boards.map((board) =>
+        board.id === currentBoardId ? updatedBoard : board
+      ),
+    });
+    ignorePersistenceError(putBoard(updatedBoard));
   },
 }));
