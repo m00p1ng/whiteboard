@@ -74,4 +74,62 @@ describe('boardStore', () => {
     expect(fresh.getState().boards).toHaveLength(1);
     expect(fresh.getState().boards[0].id).toBe('existing-id');
   });
+
+  it('persists saved shapes and updates the edit timestamp', () => {
+    const now = vi.spyOn(Date, 'now').mockReturnValue(100);
+    const id = useBoardStore.getState().createBoard('Diagram');
+    now.mockReturnValue(300);
+
+    useBoardStore.getState().saveCurrentBoard({
+      rect: {
+        id: 'rect',
+        type: 'rect',
+        x: 10,
+        y: 20,
+        width: 100,
+        height: 60,
+      },
+    });
+
+    const stored = JSON.parse(localStorage.getItem('whiteboard:boards')!);
+    expect(stored[0].shapes.rect).toMatchObject({
+      type: 'rect',
+      x: 10,
+      y: 20,
+    });
+    expect(stored[0].updatedAt).toBe(300);
+    expect(useBoardStore.getState().boards[0].id).toBe(id);
+  });
+
+  it('loads saved shapes on a fresh import without reopening a board', async () => {
+    localStorage.setItem(
+      'whiteboard:boards',
+      JSON.stringify([
+        {
+          id: 'saved-board',
+          name: 'Saved board',
+          createdAt: 1,
+          updatedAt: 2,
+          shapes: {
+            text: {
+              id: 'text',
+              type: 'text',
+              x: 5,
+              y: 6,
+              text: 'Persisted',
+              fontSize: 18,
+            },
+          },
+        },
+      ])
+    );
+
+    vi.resetModules();
+    const { useBoardStore: fresh } = await import('./boardStore');
+
+    expect(fresh.getState().currentBoardId).toBeNull();
+    expect(fresh.getState().boards[0].shapes.text).toMatchObject({
+      text: 'Persisted',
+    });
+  });
 });
