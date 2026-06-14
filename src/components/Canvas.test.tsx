@@ -37,6 +37,10 @@ vi.mock('react-konva', () => ({
       target: stage,
       evt: { pointerId: 1 } as PointerEvent,
     });
+    const shapeEvent = () => ({
+      target: { getStage: () => stage },
+      evt: { pointerId: 1 } as PointerEvent,
+    });
 
     return (
       <div>
@@ -44,6 +48,11 @@ vi.mock('react-konva', () => ({
           type="button"
           aria-label="pointer down"
           onClick={() => onPointerDown(event())}
+        />
+        <button
+          type="button"
+          aria-label="pointer down on shape"
+          onClick={() => onPointerDown(shapeEvent())}
         />
         <button
           type="button"
@@ -284,6 +293,39 @@ describe('Canvas shape creation', () => {
     expect(
       screen.getByTestId('creation-preview').getAttribute('data-shape')
     ).toBe('');
+  });
+});
+
+describe('Canvas viewport panning', () => {
+  it('pans the viewport by the pointer delta when dragging empty stage', () => {
+    render(<Canvas />);
+
+    konvaMock.pointer = { x: 100, y: 100 };
+    fireEvent.click(screen.getByRole('button', { name: 'pointer down' }));
+
+    konvaMock.pointer = { x: 150, y: 130 };
+    fireEvent.click(screen.getByRole('button', { name: 'pointer move' }));
+
+    expect(useEditorStore.getState().viewport).toMatchObject({
+      offsetX: 50,
+      offsetY: 30,
+    });
+  });
+
+  it('does not pan when the drag starts on a shape', () => {
+    render(<Canvas />);
+
+    const viewportBefore = useEditorStore.getState().viewport;
+
+    konvaMock.pointer = { x: 100, y: 100 };
+    fireEvent.click(
+      screen.getByRole('button', { name: 'pointer down on shape' })
+    );
+
+    konvaMock.pointer = { x: 150, y: 130 };
+    fireEvent.click(screen.getByRole('button', { name: 'pointer move' }));
+
+    expect(useEditorStore.getState().viewport).toEqual(viewportBefore);
   });
 });
 

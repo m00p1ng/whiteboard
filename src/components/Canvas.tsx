@@ -36,6 +36,7 @@ export function Canvas() {
   const [shapeDraft, setShapeDraft] = useState<ShapeDraft | null>(null);
   const draftToolRef = useRef<CreationTool | null>(null);
   const connectorToolRef = useRef<typeof tool | null>(null);
+  const panStateRef = useRef<{ screen: Point; offset: Point } | null>(null);
 
   const isCreationTool = (value: typeof tool): value is CreationTool =>
     value === 'rect' ||
@@ -99,29 +100,34 @@ export function Canvas() {
 
   const handlePointerDown = (e: KonvaEventObject<PointerEvent>) => {
     const stage = e.target.getStage();
-    if (
-      !stage ||
-      e.target !== stage ||
-      !isCreationTool(tool) ||
-      spacePressed
-    ) {
-      return;
-    }
+    if (!stage) return;
     const screen = getScreenPointer(stage);
     if (!screen) return;
-    const world = screenToWorld(screen, viewport);
-    if (!Number.isFinite(world.x) || !Number.isFinite(world.y)) return;
 
-    setSelectedId(null);
-    draftToolRef.current = tool;
-    setShapeDraft({
-      tool,
-      startWorld: world,
-      currentWorld: world,
-      startScreen: screen,
-      currentScreen: screen,
-    });
-    stage.content.setPointerCapture(e.evt.pointerId);
+    if (e.target === stage && isCreationTool(tool) && !spacePressed) {
+      const world = screenToWorld(screen, viewport);
+      if (!Number.isFinite(world.x) || !Number.isFinite(world.y)) return;
+
+      setSelectedId(null);
+      draftToolRef.current = tool;
+      setShapeDraft({
+        tool,
+        startWorld: world,
+        currentWorld: world,
+        startScreen: screen,
+        currentScreen: screen,
+      });
+      stage.content.setPointerCapture(e.evt.pointerId);
+      return;
+    }
+
+    if ((tool === 'select' && e.target === stage) || spacePressed) {
+      panStateRef.current = {
+        screen,
+        offset: { x: viewport.offsetX, y: viewport.offsetY },
+      };
+      stage.content.setPointerCapture(e.evt.pointerId);
+    }
   };
 
   const handlePointerMove = (e: KonvaEventObject<PointerEvent>) => {
@@ -129,6 +135,16 @@ export function Canvas() {
     if (!stage) return;
     const screen = getScreenPointer(stage);
     if (!screen) return;
+
+    if (panStateRef.current) {
+      const { screen: startScreen, offset } = panStateRef.current;
+      setViewport({
+        offsetX: offset.x + (screen.x - startScreen.x),
+        offsetY: offset.y + (screen.y - startScreen.y),
+      });
+      return;
+    }
+
     const world = screenToWorld(screen, viewport);
 
     if (shapeDraft) {
@@ -146,10 +162,20 @@ export function Canvas() {
 
   const handlePointerUp = (e: KonvaEventObject<PointerEvent>) => {
     const stage = e.target.getStage();
-    if (!stage || !shapeDraft) return;
+    if (!stage) return;
+    const content = stage.content;
+
+    if (panStateRef.current) {
+      panStateRef.current = null;
+      if (content.hasPointerCapture(e.evt.pointerId)) {
+        content.releasePointerCapture(e.evt.pointerId);
+      }
+      return;
+    }
+
+    if (!shapeDraft) return;
     const screen = getScreenPointer(stage) ?? shapeDraft.currentScreen;
     const world = screenToWorld(screen, viewport);
-    const content = stage.content;
     if (content.hasPointerCapture(e.evt.pointerId)) {
       content.releasePointerCapture(e.evt.pointerId);
     }
@@ -174,6 +200,7 @@ export function Canvas() {
     if (stage?.content.hasPointerCapture(e.evt.pointerId)) {
       stage.content.releasePointerCapture(e.evt.pointerId);
     }
+    panStateRef.current = null;
     clearShapeDraft();
   };
 
@@ -260,8 +287,6 @@ export function Canvas() {
         scaleY={viewport.scale}
         x={viewport.offsetX}
         y={viewport.offsetY}
-        draggable={(tool === 'select' || spacePressed) && !shapeDraft}
-        onDragEnd={(e) => setViewport({ offsetX: e.target.x(), offsetY: e.target.y() })}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
@@ -274,6 +299,7 @@ export function Canvas() {
               key={shape.id}
               shape={shape}
               isSelected={shape.id === selectedId || shape.id === connectorSource}
+              draggable={tool === 'select' && !spacePressed}
               onSelect={() => handleShapeClick(shape.id)}
               onDblClick={() => handleShapeDblClick(shape.id)}
               onChange={(updates) => updateShape(shape.id, updates)}

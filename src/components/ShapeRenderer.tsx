@@ -6,12 +6,13 @@ import { Connector } from './Connector';
 interface ShapeRendererProps {
   shape: Shape;
   isSelected: boolean;
+  draggable?: boolean;
   onSelect: () => void;
   onDblClick?: () => void;
   onChange?: (updates: Partial<Shape>) => void;
 }
 
-export function ShapeRenderer({ shape, isSelected, onSelect, onDblClick, onChange }: ShapeRendererProps) {
+export function ShapeRenderer({ shape, isSelected, draggable = true, onSelect, onDblClick, onChange }: ShapeRendererProps) {
   const handleDragEnd = (e: KonvaEventObject<DragEvent>) => {
     onChange?.({ x: e.target.x(), y: e.target.y() });
   };
@@ -44,7 +45,7 @@ export function ShapeRenderer({ shape, isSelected, onSelect, onDblClick, onChang
     fill: shape.fill,
     stroke: isSelected ? '#3b82f6' : shape.stroke ?? '#000',
     strokeWidth: shape.strokeWidth ?? 2,
-    draggable: true,
+    draggable,
     onClick: onSelect,
     onTap: onSelect,
     onDblClick: onDblClick,
