@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { Transformer } from 'react-konva';
+import Konva from 'konva';
 import type { Shape } from '@/types/shape';
 
 interface SelectionTransformerProps {
@@ -7,7 +8,7 @@ interface SelectionTransformerProps {
 }
 
 export function SelectionTransformer({ selectedShape }: SelectionTransformerProps) {
-  const transformerRef = useRef<any>(null);
+  const transformerRef = useRef<Konva.Transformer | null>(null);
 
   useEffect(() => {
     if (transformerRef.current && selectedShape) {

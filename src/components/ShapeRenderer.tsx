@@ -1,4 +1,5 @@
 import { Rect, Circle, Line, Text } from 'react-konva';
+import Konva from 'konva';
 import type { KonvaEventObject } from 'konva/lib/Node';
 import type { Shape } from '@/types/shape';
 import { Connector } from './Connector';
@@ -25,7 +26,9 @@ export function ShapeRenderer({ shape, isSelected, onSelect, onDblClick, onChang
       ...(shape.type === 'rect'
         ? { width: node.width() * node.scaleX(), height: node.height() * node.scaleY() }
         : {}),
-      ...(shape.type === 'circle' ? { radius: (node as any).radius() * node.scaleX() } : {}),
+      ...(shape.type === 'circle'
+        ? { radius: (node as unknown as Konva.Circle).radius() * node.scaleX() }
+        : {}),
     });
     node.scaleX(1);
     node.scaleY(1);

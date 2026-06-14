@@ -1,5 +1,6 @@
 import { useRef, useState, useEffect } from 'react';
 import { Stage, Layer } from 'react-konva';
+import type { Stage as StageType } from 'konva/lib/Stage';
 import type { KonvaEventObject } from 'konva/lib/Node';
 import { useEditorStore } from '@/store/editorStore';
 import { ShapeRenderer } from './ShapeRenderer';
@@ -8,7 +9,7 @@ import { TextEditor } from './TextEditor';
 import type { TextShape } from '@/types/shape';
 
 export function Canvas() {
-  const stageRef = useRef<any>(null);
+  const stageRef = useRef<StageType | null>(null);
   const shapes = useEditorStore((s) => s.shapes);
   const selectedId = useEditorStore((s) => s.selectedId);
   const viewport = useEditorStore((s) => s.viewport);
