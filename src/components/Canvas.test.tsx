@@ -75,6 +75,7 @@ vi.mock('react-konva', () => ({
   },
   Layer: ({ children }: PropsWithChildren) => <>{children}</>,
   Transformer: () => <div data-testid="selection-transformer" />,
+  Circle: () => <div data-testid="line-endpoint-handle" />,
 }));
 
 vi.mock('./ShapeRenderer', () => ({

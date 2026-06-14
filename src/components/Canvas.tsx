@@ -18,6 +18,7 @@ import {
 } from '@/utils/creationGeometry';
 import { CreationPreview } from './CreationPreview';
 import { ShapeContextMenu } from './ShapeContextMenu';
+import { LineEndpointHandles } from './LineEndpointHandles';
 
 export function Canvas() {
   const stageRef = useRef<StageType | null>(null);
@@ -338,6 +339,13 @@ export function Canvas() {
           ))}
           <CreationPreview shape={previewShape} connectorPoints={connectorPoints} />
           <SelectionTransformer selectedShape={selectedShape} />
+          {selectedShape?.type === 'line' && tool === 'select' && (
+            <LineEndpointHandles
+              shape={selectedShape}
+              viewport={viewport}
+              onChange={(updates) => updateShape(selectedShape.id, updates)}
+            />
+          )}
         </Layer>
       </Stage>
       {editingTextId && shapes[editingTextId]?.type === 'text' && (
