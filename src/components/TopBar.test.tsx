@@ -84,4 +84,19 @@ describe('TopBar', () => {
     ).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Redo' })).toBeInTheDocument();
   });
+
+  it('toggles grid visibility', () => {
+    renderTopBar();
+
+    const toggle = screen.getByRole('button', { name: 'Hide grid' });
+    expect(toggle).toHaveAttribute('aria-pressed', 'true');
+
+    fireEvent.click(toggle);
+
+    expect(useEditorStore.getState().showGrid).toBe(false);
+    expect(window.localStorage.getItem('whiteboard:showGrid')).toBe('false');
+    expect(
+      screen.getByRole('button', { name: 'Show grid' })
+    ).toHaveAttribute('aria-pressed', 'false');
+  });
 });
