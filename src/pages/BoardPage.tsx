@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { Canvas } from '@/components/Canvas';
 import { LeftToolbar } from '@/components/LeftToolbar';
 import { Minimap } from '@/components/Minimap';
+import { ShapePropertiesPanel } from '@/components/ShapePropertiesPanel';
 import { TopBar } from '@/components/TopBar';
 import { ZoomControls } from '@/components/ZoomControls';
 import { useBoardStore } from '@/store/boardStore';
@@ -15,6 +16,7 @@ export function BoardPage() {
     state.boards.find((board) => board.id === currentBoardId)
   );
   const saveCurrentBoard = useBoardStore((state) => state.saveCurrentBoard);
+  const selectedId = useEditorStore((state) => state.selectedId);
 
   useEffect(() => {
     const board = useBoardStore
@@ -43,6 +45,7 @@ export function BoardPage() {
       <LeftToolbar />
       <Minimap />
       <ZoomControls />
+      <ShapePropertiesPanel key={selectedId ?? 'none'} />
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { act, render } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BoardPage } from './BoardPage';
 import { putBoard } from '@/db/boardDb';
@@ -94,5 +94,53 @@ describe('BoardPage persistence', () => {
     expect(board.updatedAt).toBe(500);
 
     expect(mockedPutBoard).toHaveBeenCalledWith(board);
+  });
+});
+
+describe('BoardPage shape properties panel', () => {
+  it('shows fields for the selected shape and swaps when selection changes', () => {
+    const shapeA: RectShape = {
+      id: 'a',
+      type: 'rect',
+      x: 1,
+      y: 2,
+      width: 10,
+      height: 20,
+      fill: '#111111',
+    };
+    const shapeB: RectShape = {
+      id: 'b',
+      type: 'rect',
+      x: 3,
+      y: 4,
+      width: 30,
+      height: 40,
+      fill: '#222222',
+    };
+
+    useBoardStore.setState({
+      boards: [
+        {
+          id: 'board-1',
+          name: 'Persisted board',
+          createdAt: 100,
+          updatedAt: 200,
+          shapes: { a: shapeA, b: shapeB },
+        },
+      ],
+      currentBoardId: 'board-1',
+    });
+
+    render(<BoardPage />);
+
+    act(() => {
+      useEditorStore.getState().setSelectedId('a');
+    });
+    expect(screen.getByLabelText('X')).toHaveValue(1);
+
+    act(() => {
+      useEditorStore.getState().setSelectedId('b');
+    });
+    expect(screen.getByLabelText('X')).toHaveValue(3);
   });
 });
