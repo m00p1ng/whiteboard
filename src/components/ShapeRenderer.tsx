@@ -1,6 +1,7 @@
 import { Rect, Circle, Line, Text } from 'react-konva';
 import type { KonvaEventObject } from 'konva/lib/Node';
 import type { Shape } from '@/types/shape';
+import { Connector } from './Connector';
 
 interface ShapeRendererProps {
   shape: Shape;
@@ -44,6 +45,8 @@ export function ShapeRenderer({ shape, isSelected, onSelect, onChange }: ShapeRe
           fill={shape.fill ?? '#000'}
         />
       );
+    case 'connector':
+      return <Connector connector={shape} />;
     default:
       return null;
   }

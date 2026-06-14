@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { Stage, Layer } from 'react-konva';
 import type { KonvaEventObject } from 'konva/lib/Node';
 import { useEditorStore } from '@/store/editorStore';
@@ -15,6 +15,7 @@ export function Canvas() {
   const updateShape = useEditorStore((s) => s.updateShape);
   const tool = useEditorStore((s) => s.tool);
   const setViewport = useEditorStore((s) => s.setViewport);
+  const [connectorSource, setConnectorSource] = useState<string | null>(null);
 
   const selectedShape = selectedId ? shapes[selectedId] ?? null : null;
 
@@ -36,6 +37,30 @@ export function Canvas() {
     }
   };
 
+  const handleShapeClick = (shapeId: string) => {
+    if (tool === 'connector') {
+      if (!connectorSource) {
+        setConnectorSource(shapeId);
+        setSelectedId(shapeId);
+        return;
+      }
+      if (connectorSource !== shapeId) {
+        addShape({
+          id: crypto.randomUUID(),
+          type: 'connector',
+          x: 0,
+          y: 0,
+          fromId: connectorSource,
+          toId: shapeId,
+        });
+      }
+      setConnectorSource(null);
+      setSelectedId(null);
+      return;
+    }
+    setSelectedId(shapeId);
+  };
+
   return (
     <div className="flex-1 relative overflow-hidden bg-gray-50">
       <Stage
@@ -55,8 +80,8 @@ export function Canvas() {
             <ShapeRenderer
               key={shape.id}
               shape={shape}
-              isSelected={shape.id === selectedId}
-              onSelect={() => setSelectedId(shape.id)}
+              isSelected={shape.id === selectedId || shape.id === connectorSource}
+              onSelect={() => handleShapeClick(shape.id)}
               onChange={(updates) => updateShape(shape.id, updates)}
             />
           ))}
