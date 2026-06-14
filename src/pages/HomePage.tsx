@@ -2,6 +2,19 @@ import { useState } from 'react';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useBoardStore } from '@/store/boardStore';
+import { useRelativeTime } from '@/hooks/useRelativeTime';
+
+function BoardUpdatedAt({ updatedAt }: { updatedAt: number }) {
+  const relative = useRelativeTime(updatedAt);
+  return (
+    <p
+      className="text-sm text-gray-500 mt-1"
+      title={new Date(updatedAt).toLocaleString()}
+    >
+      Updated {relative}
+    </p>
+  );
+}
 
 export function HomePage() {
   const boards = useBoardStore((state) => state.boards);
@@ -68,9 +81,7 @@ export function HomePage() {
                     {board.name}
                   </h2>
                 )}
-                <p className="text-sm text-gray-500 mt-1">
-                  Updated {new Date(board.updatedAt).toLocaleString()}
-                </p>
+                <BoardUpdatedAt updatedAt={board.updatedAt} />
                 <div className="flex gap-2 mt-4">
                   <Button
                     variant="ghost"
