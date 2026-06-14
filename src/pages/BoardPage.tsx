@@ -1,6 +1,9 @@
 import { useEffect } from 'react';
 import { Canvas } from '@/components/Canvas';
-import { Toolbar } from '@/components/Toolbar';
+import { LeftToolbar } from '@/components/LeftToolbar';
+import { Minimap } from '@/components/Minimap';
+import { TopBar } from '@/components/TopBar';
+import { ZoomControls } from '@/components/ZoomControls';
 import { useBoardStore } from '@/store/boardStore';
 import { useEditorStore } from '@/store/editorStore';
 import { useHotkeys } from '@/hooks/useHotkeys';
@@ -36,9 +39,12 @@ export function BoardPage() {
   }
 
   return (
-    <div className="h-screen w-screen relative overflow-hidden bg-gray-50">
-      <Toolbar />
+    <div className="relative h-screen w-screen overflow-hidden bg-gray-50">
       <Canvas />
+      <TopBar />
+      <LeftToolbar />
+      <Minimap />
+      <ZoomControls />
     </div>
   );
 }
