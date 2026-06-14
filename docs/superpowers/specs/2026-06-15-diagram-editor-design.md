@@ -5,7 +5,7 @@
 Build a single-user, in-browser diagram editor similar to Miro/draw.io, focused on drawing first.
 
 **In scope for first version:**
-- Add rectangles, circles, lines, and text to an infinite canvas.
+- Add rectangles, circles, lines, and text to an infinite canvas (pannable and zoomable, with no fixed boundaries).
 - Connectors that snap between shapes and move with them.
 - Select, drag, resize, rotate, and delete shapes.
 - Pan and zoom the canvas.
@@ -109,6 +109,7 @@ interface ConnectorShape extends BaseShape {
 ## 6. Connectors
 
 - Connectors are created by selecting the connector tool, clicking a source shape, and clicking a target shape.
+- Lines are created by selecting the line tool and clicking twice on the canvas (start point and end point).
 - Snap endpoints to shape anchor points: top, right, bottom, left, center.
 - Default anchor is `center` for the first version.
 - When a connected shape moves, the connector path recalculates.
