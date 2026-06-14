@@ -1,47 +1,107 @@
 import type { PropsWithChildren } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { Canvas } from './Canvas';
 import { useEditorStore } from '@/store/editorStore';
 import type { RectShape } from '@/types/shape';
 
 const konvaMock = vi.hoisted(() => ({
   pointer: { x: 120, y: 80 },
+  shapeSelect: null as null | ((id: string) => void),
 }));
 
 vi.mock('react-konva', () => ({
   Stage: ({
     children,
-    onClick,
+    onPointerDown,
+    onPointerMove,
+    onPointerUp,
+    onPointerCancel,
   }: PropsWithChildren<{
-    onClick: (event: { target: unknown }) => void;
-  }>) => (
-    <button
-      type="button"
-      aria-label="board canvas"
-      onClick={() => {
-        const stage = {
-          getStage: () => stage,
-          getPointerPosition: () => konvaMock.pointer,
-        };
-        onClick({ target: stage });
-      }}
-    >
-      {children}
-    </button>
-  ),
+    onPointerDown: (event: { target: unknown; evt: PointerEvent }) => void;
+    onPointerMove: (event: { target: unknown; evt: PointerEvent }) => void;
+    onPointerUp: (event: { target: unknown; evt: PointerEvent }) => void;
+    onPointerCancel: (event: { target: unknown; evt: PointerEvent }) => void;
+  }>) => {
+    const container = {
+      setPointerCapture: vi.fn(),
+      releasePointerCapture: vi.fn(),
+      hasPointerCapture: () => true,
+    };
+    const stage = {
+      getStage: () => stage,
+      getPointerPosition: () => konvaMock.pointer,
+      container: () => container,
+    };
+    const event = () => ({
+      target: stage,
+      evt: { pointerId: 1 } as PointerEvent,
+    });
+
+    return (
+      <div>
+        <button
+          type="button"
+          aria-label="pointer down"
+          onClick={() => onPointerDown(event())}
+        />
+        <button
+          type="button"
+          aria-label="pointer move"
+          onClick={() => onPointerMove(event())}
+        />
+        <button
+          type="button"
+          aria-label="pointer up"
+          onClick={() => onPointerUp(event())}
+        />
+        <button
+          type="button"
+          aria-label="pointer cancel"
+          onClick={() => onPointerCancel(event())}
+        />
+        {children}
+      </div>
+    );
+  },
   Layer: ({ children }: PropsWithChildren) => <>{children}</>,
   Transformer: () => <div data-testid="selection-transformer" />,
 }));
 
 vi.mock('./ShapeRenderer', () => ({
-  ShapeRenderer: ({ shape }: { shape: { id: string } }) => (
-    <div data-testid={`shape-${shape.id}`} />
+  ShapeRenderer: ({
+    shape,
+    onSelect,
+  }: {
+    shape: { id: string };
+    onSelect: () => void;
+  }) => (
+    <button
+      type="button"
+      data-testid={`shape-${shape.id}`}
+      onClick={onSelect}
+    />
   ),
 }));
 
 vi.mock('./TextEditor', () => ({
   TextEditor: () => null,
+}));
+
+vi.mock('./CreationPreview', () => ({
+  CreationPreview: ({
+    shape,
+    connectorPoints,
+  }: {
+    shape?: { type: string; [key: string]: unknown } | null;
+    connectorPoints?: number[] | null;
+  }) => (
+    <div
+      data-testid="creation-preview"
+      data-shape={shape ? JSON.stringify(shape) : ''}
+      data-connector={connectorPoints ? JSON.stringify(connectorPoints) : ''}
+    />
+  ),
 }));
 
 const existingShape: RectShape = {
@@ -66,75 +126,163 @@ beforeEach(() => {
   );
 });
 
-describe('Canvas shape creation selection', () => {
+function gesture(
+  start: { x: number; y: number },
+  end: { x: number; y: number }
+) {
+  konvaMock.pointer = start;
+  fireEvent.click(screen.getByRole('button', { name: 'pointer down' }));
+  konvaMock.pointer = end;
+  fireEvent.click(screen.getByRole('button', { name: 'pointer move' }));
+}
+
+describe('Canvas shape creation', () => {
   it.each([
-    ['rect', 'rect'],
-    ['circle', 'circle'],
-    ['text', 'text'],
+    [
+      'rect',
+      { x: 20, y: 30 },
+      { x: 120, y: 90 },
+      { type: 'rect', x: 20, y: 30, width: 100, height: 60 },
+    ],
+    [
+      'circle',
+      { x: 20, y: 30 },
+      { x: 120, y: 70 },
+      { type: 'circle', x: 70, y: 50, radiusX: 50, radiusY: 20 },
+    ],
+    [
+      'line',
+      { x: 20, y: 30 },
+      { x: 120, y: 70 },
+      { type: 'line', points: [20, 30, 120, 70] },
+    ],
   ] as const)(
-    'deselects before creating a %s, then selects it and returns to Select',
-    (tool, expectedType) => {
+    'previews and commits a dragged %s once',
+    (tool, start, end, expected) => {
       useEditorStore.getState().setTool(tool);
       render(<Canvas />);
 
-      fireEvent.click(screen.getByRole('button', { name: 'board canvas' }));
+      gesture(start, end);
 
+      const preview = JSON.parse(
+        screen.getByTestId('creation-preview').getAttribute('data-shape')!
+      );
+      expect(preview).toMatchObject(expected);
+      expect(useEditorStore.getState().shapes).toEqual({
+        existing: existingShape,
+      });
       expect(useEditorStore.getState().selectedId).toBeNull();
-      expect(useEditorStore.getState().tool).toBe(tool);
-      expect(Object.keys(useEditorStore.getState().shapes)).toEqual(['existing']);
 
-      fireEvent.click(screen.getByRole('button', { name: 'board canvas' }));
+      fireEvent.click(screen.getByRole('button', { name: 'pointer up' }));
 
       const state = useEditorStore.getState();
-      expect(state.shapes['00000000-0000-4000-8000-000000000001']).toMatchObject({
-        type: expectedType,
-        x: 120,
-        y: 80,
-      });
+      expect(state.shapes['00000000-0000-4000-8000-000000000001'])
+        .toMatchObject(expected);
+      expect(state.undoStack).toHaveLength(1);
       expect(state.selectedId).toBe('00000000-0000-4000-8000-000000000001');
       expect(state.tool).toBe('select');
-      expect(screen.getByTestId('selection-transformer')).toBeInTheDocument();
     }
   );
 
-  it('leaves connector selection behavior unchanged on an empty-board click', () => {
-    useEditorStore.getState().setTool('connector');
+  it('places text at the drag start without sizing it', () => {
+    useEditorStore.getState().setTool('text');
     render(<Canvas />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'board canvas' }));
+    gesture({ x: 20, y: 30 }, { x: 120, y: 90 });
+    fireEvent.click(screen.getByRole('button', { name: 'pointer up' }));
 
-    expect(useEditorStore.getState().selectedId).toBe('existing');
-    expect(useEditorStore.getState().tool).toBe('connector');
+    expect(
+      useEditorStore.getState().shapes[
+        '00000000-0000-4000-8000-000000000001'
+      ]
+    ).toMatchObject({
+      type: 'text',
+      x: 20,
+      y: 30,
+      text: 'Text',
+      fontSize: 18,
+    });
+  });
+
+  it.each([
+    ['rect', { width: 100, height: 60 }],
+    ['circle', { radiusX: 40, radiusY: 40 }],
+    ['line', { points: [20, 30, 100, 30] }],
+    ['text', { text: 'Text', fontSize: 18 }],
+  ] as const)('creates the default %s for a click gesture', (tool, expected) => {
+    useEditorStore.getState().setTool(tool);
+    render(<Canvas />);
+
+    gesture({ x: 20, y: 30 }, { x: 23, y: 34 });
+    fireEvent.click(screen.getByRole('button', { name: 'pointer up' }));
+
+    expect(
+      useEditorStore.getState().shapes[
+        '00000000-0000-4000-8000-000000000001'
+      ]
+    ).toMatchObject(expected);
+  });
+
+  it('converts preview and committed coordinates through the viewport', () => {
+    useEditorStore.setState({
+      tool: 'rect',
+      viewport: { scale: 2, offsetX: 40, offsetY: 20 },
+    });
+    render(<Canvas />);
+
+    gesture({ x: 60, y: 40 }, { x: 260, y: 160 });
+    fireEvent.click(screen.getByRole('button', { name: 'pointer up' }));
+
+    expect(
+      useEditorStore.getState().shapes[
+        '00000000-0000-4000-8000-000000000001'
+      ]
+    ).toMatchObject({
+      x: 10,
+      y: 10,
+      width: 100,
+      height: 60,
+    });
+  });
+
+  it('cancels a draft with Escape and keeps the tool active', () => {
+    useEditorStore.getState().setTool('rect');
+    render(<Canvas />);
+
+    gesture({ x: 20, y: 30 }, { x: 120, y: 90 });
+    fireEvent.keyDown(window, { key: 'Escape' });
+
+    expect(
+      screen.getByTestId('creation-preview').getAttribute('data-shape')
+    ).toBe('');
+    expect(useEditorStore.getState().tool).toBe('rect');
     expect(Object.keys(useEditorStore.getState().shapes)).toEqual(['existing']);
   });
 
-  it('selects a line and returns to Select only after the second creation click', () => {
+  it('cancels a draft on pointer cancellation', () => {
     useEditorStore.getState().setTool('line');
     render(<Canvas />);
-    const canvas = screen.getByRole('button', { name: 'board canvas' });
 
-    fireEvent.click(canvas);
+    gesture({ x: 20, y: 30 }, { x: 120, y: 90 });
+    fireEvent.click(screen.getByRole('button', { name: 'pointer cancel' }));
 
-    expect(useEditorStore.getState().selectedId).toBeNull();
-    expect(useEditorStore.getState().tool).toBe('line');
+    expect(
+      screen.getByTestId('creation-preview').getAttribute('data-shape')
+    ).toBe('');
     expect(Object.keys(useEditorStore.getState().shapes)).toEqual(['existing']);
+  });
 
-    konvaMock.pointer = { x: 30, y: 40 };
-    fireEvent.click(canvas);
+  it('clears a draft when the active tool changes', () => {
+    useEditorStore.getState().setTool('rect');
+    render(<Canvas />);
+    gesture({ x: 20, y: 30 }, { x: 120, y: 90 });
 
-    expect(useEditorStore.getState().tool).toBe('line');
-    expect(Object.keys(useEditorStore.getState().shapes)).toEqual(['existing']);
-
-    konvaMock.pointer = { x: 90, y: 110 };
-    fireEvent.click(canvas);
-
-    const state = useEditorStore.getState();
-    expect(state.shapes['00000000-0000-4000-8000-000000000001']).toMatchObject({
-      type: 'line',
-      points: [30, 40, 90, 110],
+    act(() => {
+      useEditorStore.getState().setTool('line');
     });
-    expect(state.selectedId).toBe('00000000-0000-4000-8000-000000000001');
-    expect(state.tool).toBe('select');
-    expect(screen.queryByTestId('selection-transformer')).not.toBeInTheDocument();
+
+    expect(
+      screen.getByTestId('creation-preview').getAttribute('data-shape')
+    ).toBe('');
   });
 });

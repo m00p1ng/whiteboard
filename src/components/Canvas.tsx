@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Stage, Layer } from 'react-konva';
 import type { Stage as StageType } from 'konva/lib/Stage';
 import type { KonvaEventObject } from 'konva/lib/Node';
@@ -8,6 +8,15 @@ import { SelectionTransformer } from './SelectionTransformer';
 import { TextEditor } from './TextEditor';
 import type { TextShape } from '@/types/shape';
 import { zoomAtPoint } from '@/utils/geometry';
+import type { Point } from '@/utils/geometry';
+import {
+  createShapeFromGesture,
+  isClickGesture,
+  screenToWorld,
+  type CreationTool,
+  type ShapeDraft,
+} from '@/utils/creationGeometry';
+import { CreationPreview } from './CreationPreview';
 
 export function Canvas() {
   const stageRef = useRef<StageType | null>(null);
@@ -23,11 +32,34 @@ export function Canvas() {
   const [connectorSource, setConnectorSource] = useState<string | null>(null);
   const [spacePressed, setSpacePressed] = useState(false);
   const [editingTextId, setEditingTextId] = useState<string | null>(null);
-  const [lineStart, setLineStart] = useState<{ x: number; y: number } | null>(null);
+  const [shapeDraft, setShapeDraft] = useState<ShapeDraft | null>(null);
+  const draftToolRef = useRef<CreationTool | null>(null);
+
+  const isCreationTool = (value: typeof tool): value is CreationTool =>
+    value === 'rect' ||
+    value === 'circle' ||
+    value === 'line' ||
+    value === 'text';
+
+  const getScreenPointer = (stage: StageType): Point | null => {
+    const pointer = stage.getPointerPosition();
+    return pointer ? { x: pointer.x, y: pointer.y } : null;
+  };
+
+  const clearShapeDraft = () => {
+    setShapeDraft(null);
+    draftToolRef.current = null;
+  };
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
       if (e.code === 'Space') setSpacePressed(true);
+      if (e.key === 'Escape') {
+        setShapeDraft(null);
+        draftToolRef.current = null;
+        setConnectorSource(null);
+        setSelectedId(null);
+      }
     };
     const up = (e: KeyboardEvent) => {
       if (e.code === 'Space') setSpacePressed(false);
@@ -38,63 +70,103 @@ export function Canvas() {
       window.removeEventListener('keydown', down);
       window.removeEventListener('keyup', up);
     };
-  }, []);
+  }, [setSelectedId]);
+
+  useEffect(() => {
+    if (shapeDraft && tool !== draftToolRef.current) {
+      setShapeDraft(null);
+      draftToolRef.current = null;
+    }
+  }, [tool, shapeDraft]);
 
   const selectedShape = selectedId ? shapes[selectedId] ?? null : null;
 
-  const handleStageClick = (e: KonvaEventObject<MouseEvent>) => {
-    if (e.target !== e.target.getStage()) return;
-    if (tool === 'select') {
-      setSelectedId(null);
-      return;
-    }
+  const handlePointerDown = (e: KonvaEventObject<PointerEvent>) => {
+    const stage = e.target.getStage();
     if (
-      selectedId &&
-      (tool === 'rect' || tool === 'circle' || tool === 'text' || tool === 'line')
+      !stage ||
+      e.target !== stage ||
+      !isCreationTool(tool) ||
+      spacePressed
     ) {
-      setSelectedId(null);
       return;
     }
-    const pos = e.target.getStage()?.getPointerPosition();
-    if (!pos) return;
-    const id = crypto.randomUUID();
-    if (tool === 'rect') {
-      addShape({
-        id,
-        type: 'rect',
-        x: pos.x,
-        y: pos.y,
-        width: 100,
-        height: 60,
-        fill: '#fff',
-      });
-      setSelectedId(id);
-      setTool('select');
-    } else if (tool === 'circle') {
-      addShape({ id, type: 'circle', x: pos.x, y: pos.y, radius: 40, fill: '#fff' });
-      setSelectedId(id);
-      setTool('select');
-    } else if (tool === 'text') {
-      addShape({ id, type: 'text', x: pos.x, y: pos.y, text: 'Text', fontSize: 18 });
-      setSelectedId(id);
-      setTool('select');
-    } else if (tool === 'line') {
-      if (!lineStart) {
-        setLineStart({ x: pos.x, y: pos.y });
-      } else {
-        addShape({
-          id,
-          type: 'line',
-          x: 0,
-          y: 0,
-          points: [lineStart.x, lineStart.y, pos.x, pos.y],
-        });
-        setLineStart(null);
-        setSelectedId(id);
-        setTool('select');
-      }
+    const screen = getScreenPointer(stage);
+    if (!screen) return;
+    const world = screenToWorld(screen, viewport);
+    if (!Number.isFinite(world.x) || !Number.isFinite(world.y)) return;
+
+    setSelectedId(null);
+    draftToolRef.current = tool;
+    setShapeDraft({
+      tool,
+      startWorld: world,
+      currentWorld: world,
+      startScreen: screen,
+      currentScreen: screen,
+    });
+    stage.container().setPointerCapture(e.evt.pointerId);
+  };
+
+  const handlePointerMove = (e: KonvaEventObject<PointerEvent>) => {
+    const stage = e.target.getStage();
+    if (!stage) return;
+    const screen = getScreenPointer(stage);
+    if (!screen) return;
+    const world = screenToWorld(screen, viewport);
+
+    if (shapeDraft) {
+      setShapeDraft((draft) =>
+        draft
+          ? { ...draft, currentWorld: world, currentScreen: screen }
+          : null
+      );
     }
   };
+
+  const handlePointerUp = (e: KonvaEventObject<PointerEvent>) => {
+    const stage = e.target.getStage();
+    if (!stage || !shapeDraft) return;
+    const screen = getScreenPointer(stage) ?? shapeDraft.currentScreen;
+    const world = screenToWorld(screen, viewport);
+    const container = stage.container();
+    if (container.hasPointerCapture(e.evt.pointerId)) {
+      container.releasePointerCapture(e.evt.pointerId);
+    }
+
+    const shape = createShapeFromGesture({
+      id: crypto.randomUUID(),
+      tool: shapeDraft.tool,
+      startWorld: shapeDraft.startWorld,
+      currentWorld: world,
+      clicked: isClickGesture(shapeDraft.startScreen, screen),
+    });
+    clearShapeDraft();
+    if (!shape) return;
+
+    addShape(shape);
+    setSelectedId(shape.id);
+    setTool('select');
+  };
+
+  const handlePointerCancel = (e: KonvaEventObject<PointerEvent>) => {
+    const stage = e.target.getStage();
+    if (stage?.container().hasPointerCapture(e.evt.pointerId)) {
+      stage.container().releasePointerCapture(e.evt.pointerId);
+    }
+    clearShapeDraft();
+  };
+
+  const previewShape = useMemo(() => {
+    if (!shapeDraft || shapeDraft.tool !== tool) return null;
+    return createShapeFromGesture({
+      id: 'creation-preview',
+      tool: shapeDraft.tool,
+      startWorld: shapeDraft.startWorld,
+      currentWorld: shapeDraft.currentWorld,
+      clicked: false,
+    });
+  }, [shapeDraft, tool]);
 
   const handleShapeClick = (shapeId: string) => {
     if (tool === 'connector') {
@@ -153,9 +225,12 @@ export function Canvas() {
         scaleY={viewport.scale}
         x={viewport.offsetX}
         y={viewport.offsetY}
-        draggable={tool === 'select' || spacePressed}
+        draggable={(tool === 'select' || spacePressed) && !shapeDraft}
         onDragEnd={(e) => setViewport({ offsetX: e.target.x(), offsetY: e.target.y() })}
-        onClick={handleStageClick}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerCancel}
         onWheel={handleWheel}
       >
         <Layer>
@@ -169,6 +244,7 @@ export function Canvas() {
               onChange={(updates) => updateShape(shape.id, updates)}
             />
           ))}
+          <CreationPreview shape={previewShape} />
           <SelectionTransformer selectedShape={selectedShape} />
         </Layer>
       </Stage>
