@@ -1,9 +1,9 @@
-import { Button } from '@/components/ui/button';
+import { Canvas } from '@/components/Canvas';
 
 function App() {
   return (
-    <div className="h-screen w-screen flex items-center justify-center">
-      <Button>Test</Button>
+    <div className="h-screen w-screen flex flex-col">
+      <Canvas />
     </div>
   );
 }
