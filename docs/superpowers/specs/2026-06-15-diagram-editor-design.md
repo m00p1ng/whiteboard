@@ -27,9 +27,10 @@ A user can open the app and, within a few clicks, create a simple diagram with c
 - **Build tool:** Vite for fast dev server and modern tooling.
 - **Framework:** React 18 with TypeScript.
 - **Renderer:** React-Konva for 2D canvas rendering and built-in shape interactions.
+- **Component library:** shadcn/ui for UI chrome (toolbar, buttons, panels, tooltips).
 - **State management:** Zustand for global editor state.
 - **History:** Command pattern storing inverse commands in a stack for undo/redo.
-- **Styling:** Tailwind CSS for the chrome (toolbars, panels) and inline/Konva styles for canvas shapes.
+- **Styling:** Tailwind CSS + shadcn/ui for the chrome and inline/Konva styles for canvas shapes.
 
 ## 3. Data Model
 
@@ -86,7 +87,7 @@ interface ConnectorShape extends BaseShape {
 ## 4. Components
 
 - **`App`** — Layout shell. Holds the toolbar and the canvas area.
-- **`Toolbar`** — Vertical or horizontal toolbar with tool buttons and undo/redo/delete actions.
+- **`Toolbar`** — Vertical or horizontal toolbar built with shadcn/ui `Button`, `ToggleGroup`, and `Separator` components. Contains tool buttons and undo/redo/delete actions.
 - **`Canvas`** — Konva `Stage` with pan/zoom transforms. Contains a `Layer` that renders all shapes.
 - **`ShapeRenderer`** — Maps a `Shape` to the correct Konva component (`Rect`, `Circle`, `Line`, `Text`, or `Connector`).
 - **`Connector`** — Custom Konva component that watches `fromId` and `toId` shapes and redraws its path when they move.
