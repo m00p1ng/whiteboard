@@ -7,21 +7,25 @@ import { useHotkeys } from '@/hooks/useHotkeys';
 
 export function BoardPage() {
   useHotkeys();
+  const currentBoardId = useBoardStore((state) => state.currentBoardId);
   const currentBoard = useBoardStore((state) =>
-    state.boards.find((board) => board.id === state.currentBoardId)
+    state.boards.find((board) => board.id === currentBoardId)
   );
   const saveCurrentBoard = useBoardStore((state) => state.saveCurrentBoard);
   const shapes = useEditorStore((state) => state.shapes);
 
   useEffect(() => {
-    if (currentBoard) {
+    const board = useBoardStore
+      .getState()
+      .boards.find((b) => b.id === currentBoardId);
+    if (board) {
       useEditorStore.setState({
-        shapes: currentBoard.shapes,
+        shapes: board.shapes,
         undoStack: [],
         redoStack: [],
       });
     }
-  }, [currentBoard?.id]);
+  }, [currentBoardId]);
 
   useEffect(() => {
     saveCurrentBoard(shapes);

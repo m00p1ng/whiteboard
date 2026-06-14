@@ -1,6 +1,7 @@
-import { MousePointer2, Square, Circle, Minus, Type, GitCommitHorizontal, Undo2, Redo2, Trash2 } from 'lucide-react';
+import { ArrowLeft, MousePointer2, Square, Circle, Minus, Type, GitCommitHorizontal, Undo2, Redo2, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { useBoardStore } from '@/store/boardStore';
 import { useEditorStore, type Tool } from '@/store/editorStore';
 
 const tools: { value: Tool; icon: React.ReactNode; label: string }[] = [
@@ -19,9 +20,25 @@ export function Toolbar() {
   const redo = useEditorStore((s) => s.redo);
   const selectedId = useEditorStore((s) => s.selectedId);
   const removeShape = useEditorStore((s) => s.removeShape);
+  const reset = useEditorStore((s) => s.reset);
+  const currentBoardId = useBoardStore((s) => s.currentBoardId);
+  const closeBoard = useBoardStore((s) => s.closeBoard);
+
+  const handleBack = () => {
+    closeBoard();
+    reset();
+  };
 
   return (
     <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 rounded-lg border bg-background p-2 shadow-sm">
+      {currentBoardId && (
+        <>
+          <Button variant="ghost" size="icon" onClick={handleBack} aria-label="Back to boards">
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div className="h-6 w-px bg-border" />
+        </>
+      )}
       <ToggleGroup type="single" value={tool} onValueChange={(v) => v && setTool(v as Tool)}>
         {tools.map((t) => (
           <ToggleGroupItem key={t.value} value={t.value} aria-label={t.label}>
