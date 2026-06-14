@@ -4,6 +4,7 @@ import tsconfigPaths from 'vite-tsconfig-paths';
 import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
+  base: process.env.GITHUB_ACTIONS ? '/whiteboard/' : '/',
   plugins: [react(), tsconfigPaths(), tailwindcss()],
   test: {
     environment: 'jsdom',
