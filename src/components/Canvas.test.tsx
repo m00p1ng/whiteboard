@@ -238,7 +238,7 @@ describe('Canvas shape creation', () => {
         .toMatchObject(expected);
       expect(state.undoStack).toHaveLength(1);
       expect(state.selectedId).toBe('00000000-0000-4000-8000-000000000001');
-      expect(state.tool).toBe('select');
+      expect(state.tool).toBe(tool);
     }
   );
 

@@ -29,7 +29,6 @@ export function Canvas() {
   const addShape = useEditorStore((s) => s.addShape);
   const updateShape = useEditorStore((s) => s.updateShape);
   const tool = useEditorStore((s) => s.tool);
-  const setTool = useEditorStore((s) => s.setTool);
   const setViewport = useEditorStore((s) => s.setViewport);
   const bringToFront = useEditorStore((s) => s.bringToFront);
   const sendToBack = useEditorStore((s) => s.sendToBack);
@@ -136,6 +135,9 @@ export function Canvas() {
     }
 
     if ((tool === 'select' && e.target === stage) || spacePressed) {
+      if (tool === 'select' && e.target === stage) {
+        setSelectedId(null);
+      }
       panStateRef.current = {
         screen,
         offset: { x: viewport.offsetX, y: viewport.offsetY },
@@ -206,7 +208,6 @@ export function Canvas() {
 
     addShape(shape);
     setSelectedId(shape.id);
-    setTool('select');
   };
 
   const handlePointerCancel = (e: KonvaEventObject<PointerEvent>) => {
