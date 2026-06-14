@@ -94,7 +94,7 @@ describe('ShapePropertiesPanel', () => {
     fireEvent.focus(widthInput);
     fireEvent.change(widthInput, { target: { value: '150' } });
 
-    expect(useEditorStore.getState().shapes['r1'].width).toBe(150);
+    expect(useEditorStore.getState().shapes['r1']).toMatchObject({ width: 150 });
     expect(useEditorStore.getState().undoStack).toHaveLength(0);
 
     fireEvent.blur(widthInput);
@@ -102,7 +102,7 @@ describe('ShapePropertiesPanel', () => {
     expect(useEditorStore.getState().undoStack).toHaveLength(1);
 
     useEditorStore.getState().undo();
-    expect(useEditorStore.getState().shapes['r1'].width).toBe(100);
+    expect(useEditorStore.getState().shapes['r1']).toMatchObject({ width: 100 });
   });
 
   it('syncs the color swatch and hex inputs for Fill', () => {
