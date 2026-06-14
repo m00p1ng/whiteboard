@@ -12,16 +12,19 @@ vi.mock('react-konva', () => ({
     radiusX,
     radiusY,
     onTransformEnd,
+    onContextMenu,
   }: {
     radiusX: number;
     radiusY: number;
     onTransformEnd: (event: { target: unknown }) => void;
+    onContextMenu?: (event: { evt: Event }) => void;
   }) => (
     <button
       type="button"
       aria-label="ellipse"
       data-radius-x={radiusX}
       data-radius-y={radiusY}
+      onContextMenu={(e) => onContextMenu?.({ evt: e.nativeEvent })}
       onClick={() => {
         let scaleX = 2;
         let scaleY = 3;
@@ -100,5 +103,21 @@ describe('ShapeRenderer ellipse', () => {
       radiusX: 50,
       radiusY: 30,
     });
+  });
+
+  it('forwards onContextMenu to the underlying shape', () => {
+    const onContextMenu = vi.fn();
+    render(
+      <ShapeRenderer
+        shape={ellipse}
+        isSelected={false}
+        onSelect={() => undefined}
+        onContextMenu={onContextMenu}
+      />
+    );
+
+    fireEvent.contextMenu(screen.getByRole('button', { name: 'ellipse' }));
+
+    expect(onContextMenu).toHaveBeenCalled();
   });
 });

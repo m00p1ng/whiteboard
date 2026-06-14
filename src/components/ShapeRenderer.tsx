@@ -10,9 +10,10 @@ interface ShapeRendererProps {
   onSelect: () => void;
   onDblClick?: () => void;
   onChange?: (updates: Partial<Shape>) => void;
+  onContextMenu?: (e: KonvaEventObject<PointerEvent>) => void;
 }
 
-export function ShapeRenderer({ shape, isSelected, draggable = true, onSelect, onDblClick, onChange }: ShapeRendererProps) {
+export function ShapeRenderer({ shape, isSelected, draggable = true, onSelect, onDblClick, onChange, onContextMenu }: ShapeRendererProps) {
   const handleDragEnd = (e: KonvaEventObject<DragEvent>) => {
     onChange?.({ x: e.target.x(), y: e.target.y() });
   };
@@ -51,6 +52,7 @@ export function ShapeRenderer({ shape, isSelected, draggable = true, onSelect, o
     onDblClick: onDblClick,
     onDragEnd: handleDragEnd,
     onTransformEnd: handleTransformEnd,
+    onContextMenu,
   };
 
   switch (shape.type) {
