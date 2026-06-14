@@ -1,8 +1,10 @@
 import { Canvas } from '@/components/Canvas';
+import { Toolbar } from '@/components/Toolbar';
 
 function App() {
   return (
-    <div className="h-screen w-screen flex flex-col">
+    <div className="h-screen w-screen relative overflow-hidden bg-gray-50">
+      <Toolbar />
       <Canvas />
     </div>
   );
