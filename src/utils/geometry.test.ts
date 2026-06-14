@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { getAnchorPoint, getShapeBounds, zoomAtPoint } from './geometry';
+import {
+  computeResizedLinePoints,
+  getAnchorPoint,
+  getShapeBounds,
+  zoomAtPoint,
+} from './geometry';
 import type {
   CircleShape,
   ConnectorShape,
@@ -180,5 +185,32 @@ describe('zoomAtPoint', () => {
       offsetX: 100,
       offsetY: 100,
     });
+  });
+});
+
+describe('computeResizedLinePoints', () => {
+  it('updates the first endpoint when dragging handle 0', () => {
+    const result = computeResizedLinePoints([0, 0, 100, 0], 0, 0, 0, { x: 20, y: 30 });
+    expect(result).toEqual([20, 30, 100, 0]);
+  });
+
+  it('updates the second endpoint when dragging handle 1', () => {
+    const result = computeResizedLinePoints([0, 0, 100, 0], 0, 0, 1, { x: 80, y: 40 });
+    expect(result).toEqual([0, 0, 80, 40]);
+  });
+
+  it('accounts for a nonzero shape offset', () => {
+    const result = computeResizedLinePoints([0, 0, 100, 0], 10, 5, 0, { x: 30, y: 25 });
+    expect(result).toEqual([20, 20, 100, 0]);
+  });
+
+  it('rejects a resize that would shrink the line below the minimum length', () => {
+    const result = computeResizedLinePoints([0, 0, 100, 0], 0, 0, 0, { x: 95, y: 0 });
+    expect(result).toBeNull();
+  });
+
+  it('allows a resize exactly at the minimum length', () => {
+    const result = computeResizedLinePoints([0, 0, 100, 0], 0, 0, 0, { x: 90, y: 0 });
+    expect(result).toEqual([90, 0, 100, 0]);
   });
 });

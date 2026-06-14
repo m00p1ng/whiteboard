@@ -80,6 +80,30 @@ export function zoomAtPoint(
   };
 }
 
+export const MIN_LINE_LENGTH = 10;
+
+export function computeResizedLinePoints(
+  points: [number, number, number, number],
+  shapeX: number,
+  shapeY: number,
+  handleIndex: 0 | 1,
+  newWorldPos: Point
+): [number, number, number, number] | null {
+  const local = { x: newWorldPos.x - shapeX, y: newWorldPos.y - shapeY };
+  const other =
+    handleIndex === 0
+      ? { x: points[2], y: points[3] }
+      : { x: points[0], y: points[1] };
+
+  if (Math.hypot(local.x - other.x, local.y - other.y) < MIN_LINE_LENGTH) {
+    return null;
+  }
+
+  return handleIndex === 0
+    ? [local.x, local.y, points[2], points[3]]
+    : [points[0], points[1], local.x, local.y];
+}
+
 export function getAnchorPoint(shape: Shape, anchor: string = 'center'): Point {
   switch (shape.type) {
     case 'rect':
