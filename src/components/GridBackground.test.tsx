@@ -1,14 +1,8 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { Layer } from 'react-konva';
-import {
-  drawGrid,
-  getGridColors,
-  GridBackground,
-  isDarkMode,
-  MAJOR_SPACING,
-  MINOR_SPACING,
-} from './GridBackground';
-import type { GridContext } from './GridBackground';
+import { drawGrid, getGridColors, isDarkMode } from '@/utils/grid';
+import type { GridContext } from '@/utils/grid';
+import { GridBackground } from './GridBackground';
 
 function createMockContext(): GridContext & {
   strokes: Array<{ color: string; width: number }>;
@@ -127,12 +121,22 @@ describe('GridBackground drawing', () => {
 
 describe('GridBackground component', () => {
   it('returns null when hidden', () => {
-    const result = GridBackground({ viewport, visible: false });
+    const result = GridBackground({
+      viewport,
+      visible: false,
+      width: 200,
+      height: 200,
+    });
     expect(result).toBeNull();
   });
 
   it('returns a non-listening Layer with a Shape when visible', () => {
-    const result = GridBackground({ viewport, visible: true });
+    const result = GridBackground({
+      viewport,
+      visible: true,
+      width: 200,
+      height: 200,
+    });
     expect(result).not.toBeNull();
     expect(result?.type).toBe(Layer);
     expect(result?.props.listening).toBe(false);

@@ -336,7 +336,12 @@ export function Canvas() {
         onPointerCancel={handlePointerCancel}
         onWheel={handleWheel}
       >
-        <GridBackground viewport={viewport} visible={showGrid} />
+        <GridBackground
+          viewport={viewport}
+          visible={showGrid}
+          width={window.innerWidth}
+          height={window.innerHeight}
+        />
         <Layer>
           {Object.values(shapes).map((shape) => (
             <ShapeRenderer
