@@ -3,6 +3,7 @@ import { Stage, Layer } from 'react-konva';
 import type { KonvaEventObject } from 'konva/lib/Node';
 import { useEditorStore } from '@/store/editorStore';
 import { ShapeRenderer } from './ShapeRenderer';
+import { SelectionTransformer } from './SelectionTransformer';
 
 export function Canvas() {
   const stageRef = useRef<any>(null);
@@ -14,6 +15,8 @@ export function Canvas() {
   const updateShape = useEditorStore((s) => s.updateShape);
   const tool = useEditorStore((s) => s.tool);
   const setViewport = useEditorStore((s) => s.setViewport);
+
+  const selectedShape = selectedId ? shapes[selectedId] ?? null : null;
 
   const handleStageClick = (e: KonvaEventObject<MouseEvent>) => {
     if (e.target !== e.target.getStage()) return;
@@ -57,6 +60,7 @@ export function Canvas() {
               onChange={(updates) => updateShape(shape.id, updates)}
             />
           ))}
+          <SelectionTransformer selectedShape={selectedShape} />
         </Layer>
       </Stage>
     </div>
