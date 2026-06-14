@@ -1,5 +1,7 @@
 .worktrees/
 .superpowers/
+.playwright-mcp/
+
 node_modules/
 dist/
 dist-ssr/

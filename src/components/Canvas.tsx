@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Stage, Layer } from 'react-konva';
 import type { Stage as StageType } from 'konva/lib/Stage';
 import type { KonvaEventObject } from 'konva/lib/Node';
@@ -35,6 +35,7 @@ export function Canvas() {
   const [editingTextId, setEditingTextId] = useState<string | null>(null);
   const [shapeDraft, setShapeDraft] = useState<ShapeDraft | null>(null);
   const draftToolRef = useRef<CreationTool | null>(null);
+  const connectorToolRef = useRef<typeof tool | null>(null);
 
   const isCreationTool = (value: typeof tool): value is CreationTool =>
     value === 'rect' ||
@@ -52,11 +53,11 @@ export function Canvas() {
     draftToolRef.current = null;
   };
 
-  const clearConnectorDraft = () => {
+  const clearConnectorDraft = useCallback(() => {
     setConnectorSource(null);
     setConnectorPointer(null);
     setSelectedId(null);
-  };
+  }, [setSelectedId]);
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -76,7 +77,7 @@ export function Canvas() {
       window.removeEventListener('keydown', down);
       window.removeEventListener('keyup', up);
     };
-  }, [setSelectedId]);
+  }, [clearConnectorDraft, setSelectedId]);
 
   useEffect(() => {
     if (shapeDraft && tool !== draftToolRef.current) {
@@ -86,10 +87,11 @@ export function Canvas() {
   }, [tool, shapeDraft]);
 
   useEffect(() => {
-    if (tool !== 'connector' && connectorSource) {
+    if (connectorSource && tool !== connectorToolRef.current) {
       setConnectorSource(null);
       setConnectorPointer(null);
       setSelectedId(null);
+      connectorToolRef.current = null;
     }
   }, [connectorSource, setSelectedId, tool]);
 
@@ -119,7 +121,7 @@ export function Canvas() {
       startScreen: screen,
       currentScreen: screen,
     });
-    stage.container().setPointerCapture(e.evt.pointerId);
+    stage.content.setPointerCapture(e.evt.pointerId);
   };
 
   const handlePointerMove = (e: KonvaEventObject<PointerEvent>) => {
@@ -147,9 +149,9 @@ export function Canvas() {
     if (!stage || !shapeDraft) return;
     const screen = getScreenPointer(stage) ?? shapeDraft.currentScreen;
     const world = screenToWorld(screen, viewport);
-    const container = stage.container();
-    if (container.hasPointerCapture(e.evt.pointerId)) {
-      container.releasePointerCapture(e.evt.pointerId);
+    const content = stage.content;
+    if (content.hasPointerCapture(e.evt.pointerId)) {
+      content.releasePointerCapture(e.evt.pointerId);
     }
 
     const shape = createShapeFromGesture({
@@ -169,8 +171,8 @@ export function Canvas() {
 
   const handlePointerCancel = (e: KonvaEventObject<PointerEvent>) => {
     const stage = e.target.getStage();
-    if (stage?.container().hasPointerCapture(e.evt.pointerId)) {
-      stage.container().releasePointerCapture(e.evt.pointerId);
+    if (stage?.content.hasPointerCapture(e.evt.pointerId)) {
+      stage.content.releasePointerCapture(e.evt.pointerId);
     }
     clearShapeDraft();
   };
@@ -190,6 +192,7 @@ export function Canvas() {
     if (tool === 'connector') {
       if (!shapes[shapeId]) return;
       if (!connectorSource) {
+        connectorToolRef.current = tool;
         setConnectorSource(shapeId);
         setConnectorPointer(getAnchorPoint(shapes[shapeId], 'center'));
         setSelectedId(shapeId);

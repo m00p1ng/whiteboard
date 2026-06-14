@@ -23,7 +23,7 @@ vi.mock('react-konva', () => ({
     onPointerUp: (event: { target: unknown; evt: PointerEvent }) => void;
     onPointerCancel: (event: { target: unknown; evt: PointerEvent }) => void;
   }>) => {
-    const container = {
+    const content = {
       setPointerCapture: vi.fn(),
       releasePointerCapture: vi.fn(),
       hasPointerCapture: () => true,
@@ -31,7 +31,7 @@ vi.mock('react-konva', () => ({
     const stage = {
       getStage: () => stage,
       getPointerPosition: () => konvaMock.pointer,
-      container: () => container,
+      content,
     };
     const event = () => ({
       target: stage,
