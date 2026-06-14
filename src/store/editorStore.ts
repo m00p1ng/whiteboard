@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { Shape } from '@/types/shape';
-import type { Command } from '@/utils/commands';
+import type { Command, CommandState } from '@/utils/commands';
+import { createReorderCommand } from '@/utils/commands';
 
 export type Tool =
   | 'select'
@@ -33,6 +34,10 @@ interface EditorState {
   setSelectedId: (id: string | null) => void;
   setViewport: (updates: Partial<Viewport>) => void;
   setShapes: (shapes: Record<string, Shape>) => void;
+  bringToFront: (id: string) => void;
+  sendToBack: (id: string) => void;
+  bringForward: (id: string) => void;
+  sendBackward: (id: string) => void;
   reset: () => void;
 }
 
@@ -76,10 +81,10 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   },
   execute: (command) =>
     set((state) => {
-      const nextShapes = { ...state.shapes };
-      command.do({ shapes: nextShapes });
+      const cmdState: CommandState = { shapes: { ...state.shapes } };
+      command.do(cmdState);
       return {
-        shapes: nextShapes,
+        shapes: cmdState.shapes,
         undoStack: [...state.undoStack, command],
         redoStack: [],
       };
@@ -88,10 +93,10 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     set((state) => {
       const command = state.undoStack.at(-1);
       if (!command) return state;
-      const nextShapes = { ...state.shapes };
-      command.undo({ shapes: nextShapes });
+      const cmdState: CommandState = { shapes: { ...state.shapes } };
+      command.undo(cmdState);
       return {
-        shapes: nextShapes,
+        shapes: cmdState.shapes,
         undoStack: state.undoStack.slice(0, -1),
         redoStack: [...state.redoStack, command],
       };
@@ -100,10 +105,10 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     set((state) => {
       const command = state.redoStack.at(-1);
       if (!command) return state;
-      const nextShapes = { ...state.shapes };
-      command.do({ shapes: nextShapes });
+      const cmdState: CommandState = { shapes: { ...state.shapes } };
+      command.do(cmdState);
       return {
-        shapes: nextShapes,
+        shapes: cmdState.shapes,
         undoStack: [...state.undoStack, command],
         redoStack: state.redoStack.slice(0, -1),
       };
@@ -113,6 +118,36 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   setViewport: (updates) =>
     set((state) => ({ viewport: { ...state.viewport, ...updates } })),
   setShapes: (shapes) => set({ shapes, undoStack: [], redoStack: [] }),
+  bringToFront: (id) => {
+    const order = Object.keys(get().shapes);
+    const idx = order.indexOf(id);
+    if (idx === -1 || idx === order.length - 1) return;
+    const nextOrder = [...order.slice(0, idx), ...order.slice(idx + 1), id];
+    get().execute(createReorderCommand(order, nextOrder));
+  },
+  sendToBack: (id) => {
+    const order = Object.keys(get().shapes);
+    const idx = order.indexOf(id);
+    if (idx <= 0) return;
+    const nextOrder = [id, ...order.slice(0, idx), ...order.slice(idx + 1)];
+    get().execute(createReorderCommand(order, nextOrder));
+  },
+  bringForward: (id) => {
+    const order = Object.keys(get().shapes);
+    const idx = order.indexOf(id);
+    if (idx === -1 || idx === order.length - 1) return;
+    const nextOrder = [...order];
+    [nextOrder[idx], nextOrder[idx + 1]] = [nextOrder[idx + 1], nextOrder[idx]];
+    get().execute(createReorderCommand(order, nextOrder));
+  },
+  sendBackward: (id) => {
+    const order = Object.keys(get().shapes);
+    const idx = order.indexOf(id);
+    if (idx <= 0) return;
+    const nextOrder = [...order];
+    [nextOrder[idx], nextOrder[idx - 1]] = [nextOrder[idx - 1], nextOrder[idx]];
+    get().execute(createReorderCommand(order, nextOrder));
+  },
   reset: () =>
     set({
       shapes: {},

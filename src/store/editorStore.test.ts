@@ -41,3 +41,61 @@ describe('editorStore', () => {
     expect(useEditorStore.getState().shapes['r1']).toBeDefined();
   });
 });
+
+describe('editorStore z-order actions', () => {
+  const shapeA = { id: 'a', type: 'rect' as const, x: 0, y: 0, width: 10, height: 10 };
+  const shapeB = { id: 'b', type: 'rect' as const, x: 0, y: 0, width: 10, height: 10 };
+  const shapeC = { id: 'c', type: 'rect' as const, x: 0, y: 0, width: 10, height: 10 };
+
+  beforeEach(() => {
+    useEditorStore.setState({
+      shapes: {},
+      tool: 'select',
+      selectedId: null,
+      viewport: { scale: 1, offsetX: 0, offsetY: 0 },
+      undoStack: [],
+      redoStack: [],
+    });
+    useEditorStore.getState().addShape(shapeA);
+    useEditorStore.getState().addShape(shapeB);
+    useEditorStore.getState().addShape(shapeC);
+  });
+
+  it('brings a shape to front', () => {
+    useEditorStore.getState().bringToFront('a');
+    expect(Object.keys(useEditorStore.getState().shapes)).toEqual(['b', 'c', 'a']);
+  });
+
+  it('sends a shape to back', () => {
+    useEditorStore.getState().sendToBack('c');
+    expect(Object.keys(useEditorStore.getState().shapes)).toEqual(['c', 'a', 'b']);
+  });
+
+  it('brings a shape forward one step', () => {
+    useEditorStore.getState().bringForward('a');
+    expect(Object.keys(useEditorStore.getState().shapes)).toEqual(['b', 'a', 'c']);
+  });
+
+  it('sends a shape backward one step', () => {
+    useEditorStore.getState().sendBackward('c');
+    expect(Object.keys(useEditorStore.getState().shapes)).toEqual(['a', 'c', 'b']);
+  });
+
+  it('does nothing when bringing the front shape forward', () => {
+    useEditorStore.getState().bringForward('c');
+    expect(Object.keys(useEditorStore.getState().shapes)).toEqual(['a', 'b', 'c']);
+    expect(useEditorStore.getState().undoStack).toHaveLength(3);
+  });
+
+  it('does nothing when sending the back shape backward', () => {
+    useEditorStore.getState().sendBackward('a');
+    expect(Object.keys(useEditorStore.getState().shapes)).toEqual(['a', 'b', 'c']);
+    expect(useEditorStore.getState().undoStack).toHaveLength(3);
+  });
+
+  it('undoes a reorder', () => {
+    useEditorStore.getState().bringToFront('a');
+    useEditorStore.getState().undo();
+    expect(Object.keys(useEditorStore.getState().shapes)).toEqual(['a', 'b', 'c']);
+  });
+});
