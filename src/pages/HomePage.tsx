@@ -10,6 +10,9 @@ export function HomePage() {
   const renameBoard = useBoardStore((state) => state.renameBoard);
   const deleteBoard = useBoardStore((state) => state.deleteBoard);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const sortedBoards = [...boards].sort(
+    (a, b) => b.updatedAt - a.updatedAt
+  );
 
   const handleRename = (id: string, value: string) => {
     renameBoard(id, value);
@@ -35,8 +38,11 @@ export function HomePage() {
             </Button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {boards.map((board) => (
+          <div
+            data-testid="board-grid"
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+          >
+            {sortedBoards.map((board) => (
               <div
                 key={board.id}
                 className="bg-white rounded-lg border p-4 shadow-sm hover:shadow-md transition-shadow"
