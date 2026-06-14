@@ -22,13 +22,55 @@ interface BoardState {
   saveCurrentBoard: (shapes: Record<string, Shape>) => void;
 }
 
+const DEFAULT_CIRCLE_RADIUS = 40;
+
+function validRadius(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0;
+}
+
+function normalizeShape(shape: unknown): Shape {
+  const candidate = shape as Shape & {
+    radius?: unknown;
+    radiusX?: unknown;
+    radiusY?: unknown;
+  };
+
+  if (candidate?.type !== 'circle') return candidate;
+
+  const legacyRadius = validRadius(candidate.radius)
+    ? candidate.radius
+    : DEFAULT_CIRCLE_RADIUS;
+  const radiusX = validRadius(candidate.radiusX)
+    ? candidate.radiusX
+    : legacyRadius;
+  const radiusY = validRadius(candidate.radiusY)
+    ? candidate.radiusY
+    : legacyRadius;
+  const normalized = { ...candidate, radiusX, radiusY };
+  delete normalized.radius;
+
+  return normalized as Shape;
+}
+
+function normalizeBoard(board: Board): Board {
+  return {
+    ...board,
+    shapes: Object.fromEntries(
+      Object.entries(board.shapes ?? {}).map(([id, shape]) => [
+        id,
+        normalizeShape(shape),
+      ])
+    ),
+  };
+}
+
 function loadBoards(): Board[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw) as unknown;
     if (!Array.isArray(parsed)) return [];
-    return parsed as Board[];
+    return (parsed as Board[]).map(normalizeBoard);
   } catch {
     return [];
   }

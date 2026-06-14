@@ -32,10 +32,10 @@ export function getShapeBounds(shape: Shape): Bounds | null {
       };
     case 'circle':
       return {
-        x: shape.x - shape.radius,
-        y: shape.y - shape.radius,
-        width: shape.radius * 2,
-        height: shape.radius * 2,
+        x: shape.x - shape.radiusX,
+        y: shape.y - shape.radiusY,
+        width: shape.radiusX * 2,
+        height: shape.radiusY * 2,
       };
     case 'line': {
       const xs = [shape.points[0], shape.points[2]];
@@ -98,13 +98,13 @@ export function getAnchorPoint(shape: Shape, anchor: string = 'center'): Point {
     case 'circle':
       switch (anchor) {
         case 'top':
-          return { x: shape.x, y: shape.y - shape.radius };
+          return { x: shape.x, y: shape.y - shape.radiusY };
         case 'right':
-          return { x: shape.x + shape.radius, y: shape.y };
+          return { x: shape.x + shape.radiusX, y: shape.y };
         case 'bottom':
-          return { x: shape.x, y: shape.y + shape.radius };
+          return { x: shape.x, y: shape.y + shape.radiusY };
         case 'left':
-          return { x: shape.x - shape.radius, y: shape.y };
+          return { x: shape.x - shape.radiusX, y: shape.y };
         default:
           return { x: shape.x, y: shape.y };
       }

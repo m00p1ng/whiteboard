@@ -132,4 +132,100 @@ describe('boardStore', () => {
       text: 'Persisted',
     });
   });
+
+  it('normalizes legacy circle radii on load', async () => {
+    localStorage.setItem(
+      'whiteboard:boards',
+      JSON.stringify([
+        {
+          id: 'legacy-board',
+          name: 'Legacy',
+          createdAt: 1,
+          updatedAt: 2,
+          shapes: {
+            circle: {
+              id: 'circle',
+              type: 'circle',
+              x: 20,
+              y: 30,
+              radius: 25,
+            },
+          },
+        },
+      ])
+    );
+
+    vi.resetModules();
+    const { useBoardStore: fresh } = await import('./boardStore');
+
+    expect(fresh.getState().boards[0].shapes.circle).toMatchObject({
+      type: 'circle',
+      radiusX: 25,
+      radiusY: 25,
+    });
+    expect(fresh.getState().boards[0].shapes.circle).not.toHaveProperty('radius');
+  });
+
+  it('keeps migrated ellipse radii on load', async () => {
+    localStorage.setItem(
+      'whiteboard:boards',
+      JSON.stringify([
+        {
+          id: 'ellipse-board',
+          name: 'Ellipse',
+          createdAt: 1,
+          updatedAt: 2,
+          shapes: {
+            ellipse: {
+              id: 'ellipse',
+              type: 'circle',
+              x: 20,
+              y: 30,
+              radiusX: 50,
+              radiusY: 20,
+            },
+          },
+        },
+      ])
+    );
+
+    vi.resetModules();
+    const { useBoardStore: fresh } = await import('./boardStore');
+
+    expect(fresh.getState().boards[0].shapes.ellipse).toMatchObject({
+      radiusX: 50,
+      radiusY: 20,
+    });
+  });
+
+  it('uses default radii for invalid persisted circles', async () => {
+    localStorage.setItem(
+      'whiteboard:boards',
+      JSON.stringify([
+        {
+          id: 'invalid-board',
+          name: 'Invalid',
+          createdAt: 1,
+          updatedAt: 2,
+          shapes: {
+            circle: {
+              id: 'circle',
+              type: 'circle',
+              x: 20,
+              y: 30,
+              radius: null,
+            },
+          },
+        },
+      ])
+    );
+
+    vi.resetModules();
+    const { useBoardStore: fresh } = await import('./boardStore');
+
+    expect(fresh.getState().boards[0].shapes.circle).toMatchObject({
+      radiusX: 40,
+      radiusY: 40,
+    });
+  });
 });

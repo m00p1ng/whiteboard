@@ -24,7 +24,8 @@ export interface RectShape extends BaseShape {
 
 export interface CircleShape extends BaseShape {
   type: 'circle';
-  radius: number;
+  radiusX: number;
+  radiusY: number;
 }
 
 export interface LineShape extends BaseShape {

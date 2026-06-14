@@ -77,7 +77,8 @@ describe('BoardPage persistence', () => {
         type: 'circle',
         x: 30,
         y: 40,
-        radius: 20,
+        radiusX: 20,
+        radiusY: 20,
       });
     });
 

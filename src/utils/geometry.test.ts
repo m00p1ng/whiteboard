@@ -22,16 +22,20 @@ describe('geometry', () => {
     expect(getAnchorPoint(rect, 'center')).toEqual({ x: 50, y: 25 });
   });
 
-  it('returns right side of a circle', () => {
-    const circle: CircleShape = {
-      id: 'c',
+  it('uses the matching ellipse radius for each anchor', () => {
+    const ellipse: CircleShape = {
+      id: 'ellipse',
       type: 'circle',
-      x: 0,
-      y: 0,
-      radius: 30,
+      x: 100,
+      y: 80,
+      radiusX: 30,
+      radiusY: 15,
     };
 
-    expect(getAnchorPoint(circle, 'right')).toEqual({ x: 30, y: 0 });
+    expect(getAnchorPoint(ellipse, 'top')).toEqual({ x: 100, y: 65 });
+    expect(getAnchorPoint(ellipse, 'right')).toEqual({ x: 130, y: 80 });
+    expect(getAnchorPoint(ellipse, 'bottom')).toEqual({ x: 100, y: 95 });
+    expect(getAnchorPoint(ellipse, 'left')).toEqual({ x: 70, y: 80 });
   });
 });
 
@@ -54,19 +58,20 @@ describe('getShapeBounds', () => {
     });
   });
 
-  it('returns circle bounds from its center and radius', () => {
+  it('returns ellipse bounds from its center and radii', () => {
     const shape: CircleShape = {
-      id: 'circle',
+      id: 'ellipse',
       type: 'circle',
       x: 50,
       y: 70,
-      radius: 20,
+      radiusX: 30,
+      radiusY: 20,
     };
 
     expect(getShapeBounds(shape)).toEqual({
-      x: 30,
+      x: 20,
       y: 50,
-      width: 40,
+      width: 60,
       height: 40,
     });
   });
