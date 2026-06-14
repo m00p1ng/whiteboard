@@ -4,6 +4,8 @@ import type { KonvaEventObject } from 'konva/lib/Node';
 import { useEditorStore } from '@/store/editorStore';
 import { ShapeRenderer } from './ShapeRenderer';
 import { SelectionTransformer } from './SelectionTransformer';
+import { TextEditor } from './TextEditor';
+import type { TextShape } from '@/types/shape';
 
 export function Canvas() {
   const stageRef = useRef<any>(null);
@@ -17,6 +19,7 @@ export function Canvas() {
   const setViewport = useEditorStore((s) => s.setViewport);
   const [connectorSource, setConnectorSource] = useState<string | null>(null);
   const [spacePressed, setSpacePressed] = useState(false);
+  const [editingTextId, setEditingTextId] = useState<string | null>(null);
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -77,6 +80,13 @@ export function Canvas() {
     setSelectedId(shapeId);
   };
 
+  const handleShapeDblClick = (shapeId: string) => {
+    const shape = shapes[shapeId];
+    if (shape?.type === 'text') {
+      setEditingTextId(shapeId);
+    }
+  };
+
   const handleWheel = (e: KonvaEventObject<WheelEvent>) => {
     e.evt.preventDefault();
     const scaleBy = 1.05;
@@ -118,12 +128,20 @@ export function Canvas() {
               shape={shape}
               isSelected={shape.id === selectedId || shape.id === connectorSource}
               onSelect={() => handleShapeClick(shape.id)}
+              onDblClick={() => handleShapeDblClick(shape.id)}
               onChange={(updates) => updateShape(shape.id, updates)}
             />
           ))}
           <SelectionTransformer selectedShape={selectedShape} />
         </Layer>
       </Stage>
+      {editingTextId && shapes[editingTextId]?.type === 'text' && (
+        <TextEditor
+          shape={shapes[editingTextId] as TextShape}
+          viewport={viewport}
+          onClose={() => setEditingTextId(null)}
+        />
+      )}
     </div>
   );
 }

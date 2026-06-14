@@ -7,12 +7,28 @@ interface ShapeRendererProps {
   shape: Shape;
   isSelected: boolean;
   onSelect: () => void;
+  onDblClick?: () => void;
   onChange?: (updates: Partial<Shape>) => void;
 }
 
-export function ShapeRenderer({ shape, isSelected, onSelect, onChange }: ShapeRendererProps) {
+export function ShapeRenderer({ shape, isSelected, onSelect, onDblClick, onChange }: ShapeRendererProps) {
   const handleDragEnd = (e: KonvaEventObject<DragEvent>) => {
     onChange?.({ x: e.target.x(), y: e.target.y() });
+  };
+
+  const handleTransformEnd = (e: KonvaEventObject<Event>) => {
+    const node = e.target;
+    onChange?.({
+      x: node.x(),
+      y: node.y(),
+      rotation: node.rotation(),
+      ...(shape.type === 'rect'
+        ? { width: node.width() * node.scaleX(), height: node.height() * node.scaleY() }
+        : {}),
+      ...(shape.type === 'circle' ? { radius: (node as any).radius() * node.scaleX() } : {}),
+    });
+    node.scaleX(1);
+    node.scaleY(1);
   };
 
   const common = {
@@ -26,7 +42,9 @@ export function ShapeRenderer({ shape, isSelected, onSelect, onChange }: ShapeRe
     draggable: true,
     onClick: onSelect,
     onTap: onSelect,
+    onDblClick: onDblClick,
     onDragEnd: handleDragEnd,
+    onTransformEnd: handleTransformEnd,
   };
 
   switch (shape.type) {
