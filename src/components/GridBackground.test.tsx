@@ -42,7 +42,7 @@ function createMockContext(): GridContext & {
     stroke: () => {
       if (!currentPath) return;
       currentPath.type =
-        currentColor === '#94a3b8' || currentColor === '#52525b'
+        currentColor === '#cbd5e1' || currentColor === '#3f3f46'
           ? 'major'
           : 'minor';
       strokes.push({ color: currentColor, width: currentWidth });
@@ -63,6 +63,16 @@ function createMockContext(): GridContext & {
   };
 }
 
+function getVerticalLineXs(
+  path: { moves: [number, number][]; lines: [number, number][] } | undefined
+): number[] {
+  if (!path) return [];
+  return path.moves
+    .map(([x], i) => ({ x, lineX: path.lines[i][0] }))
+    .filter(({ x, lineX }) => x === lineX)
+    .map(({ x }) => x);
+}
+
 const viewport = { scale: 1, offsetX: 0, offsetY: 0 };
 
 describe('GridBackground drawing', () => {
@@ -70,7 +80,7 @@ describe('GridBackground drawing', () => {
     document.documentElement.classList.remove('dark');
   });
 
-  it('draws minor lines at 20px intervals and major lines at 100px intervals', () => {
+  it('draws minor lines at 20px intervals and major lines at 100px intervals at scale 1', () => {
     const context = createMockContext();
     drawGrid(context, viewport, 200, 200);
 
@@ -91,10 +101,32 @@ describe('GridBackground drawing', () => {
     expect(majorPath!.lines).toHaveLength(6);
   });
 
+  it('adapts major spacing to keep screen density at scale 2', () => {
+    const context = createMockContext();
+    drawGrid(context, { scale: 2, offsetX: 0, offsetY: 0 }, 200, 200);
+
+    const majorPath = context.paths.find((p) => p.type === 'major');
+    const xs = getVerticalLineXs(majorPath);
+
+    // World bounds 0..100. Target major spacing 50px world -> nice step 50.
+    expect(xs).toEqual([0, 50, 100]);
+  });
+
+  it('adapts major spacing to keep screen density when zoomed out', () => {
+    const context = createMockContext();
+    drawGrid(context, { scale: 0.5, offsetX: 0, offsetY: 0 }, 200, 200);
+
+    const majorPath = context.paths.find((p) => p.type === 'major');
+    const xs = getVerticalLineXs(majorPath);
+
+    // World bounds 0..400. Target major spacing 200px world -> nice step 200.
+    expect(xs).toEqual([0, 200, 400]);
+  });
+
   it('uses light mode colors by default', () => {
     expect(getGridColors()).toEqual({
       minor: '#e2e8f0',
-      major: '#94a3b8',
+      major: '#cbd5e1',
     });
   });
 
@@ -103,7 +135,7 @@ describe('GridBackground drawing', () => {
     expect(isDarkMode()).toBe(true);
     expect(getGridColors()).toEqual({
       minor: '#27272a',
-      major: '#52525b',
+      major: '#3f3f46',
     });
   });
 
@@ -112,10 +144,10 @@ describe('GridBackground drawing', () => {
     drawGrid(context, { scale: 2, offsetX: 0, offsetY: 0 }, 200, 200);
 
     const minorStroke = context.strokes.find((s) => s.color === '#e2e8f0');
-    const majorStroke = context.strokes.find((s) => s.color === '#94a3b8');
+    const majorStroke = context.strokes.find((s) => s.color === '#cbd5e1');
 
     expect(minorStroke).toEqual({ color: '#e2e8f0', width: 0.5 });
-    expect(majorStroke).toEqual({ color: '#94a3b8', width: 0.75 });
+    expect(majorStroke).toEqual({ color: '#cbd5e1', width: 0.75 });
   });
 });
 
