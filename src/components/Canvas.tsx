@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { Stage, Layer } from 'react-konva';
 import type { KonvaEventObject } from 'konva/lib/Node';
 import { useEditorStore } from '@/store/editorStore';
@@ -16,6 +16,22 @@ export function Canvas() {
   const tool = useEditorStore((s) => s.tool);
   const setViewport = useEditorStore((s) => s.setViewport);
   const [connectorSource, setConnectorSource] = useState<string | null>(null);
+  const [spacePressed, setSpacePressed] = useState(false);
+
+  useEffect(() => {
+    const down = (e: KeyboardEvent) => {
+      if (e.code === 'Space') setSpacePressed(true);
+    };
+    const up = (e: KeyboardEvent) => {
+      if (e.code === 'Space') setSpacePressed(false);
+    };
+    window.addEventListener('keydown', down);
+    window.addEventListener('keyup', up);
+    return () => {
+      window.removeEventListener('keydown', down);
+      window.removeEventListener('keyup', up);
+    };
+  }, []);
 
   const selectedShape = selectedId ? shapes[selectedId] ?? null : null;
 
@@ -61,6 +77,25 @@ export function Canvas() {
     setSelectedId(shapeId);
   };
 
+  const handleWheel = (e: KonvaEventObject<WheelEvent>) => {
+    e.evt.preventDefault();
+    const scaleBy = 1.05;
+    const stage = e.target.getStage();
+    if (!stage) return;
+    const oldScale = stage.scaleX();
+    const pointer = stage.getPointerPosition();
+    if (!pointer) return;
+    const mousePointTo = {
+      x: (pointer.x - stage.x()) / oldScale,
+      y: (pointer.y - stage.y()) / oldScale,
+    };
+    const direction = e.evt.deltaY > 0 ? -1 : 1;
+    const newScale = direction > 0 ? oldScale * scaleBy : oldScale / scaleBy;
+    const x = pointer.x - mousePointTo.x * newScale;
+    const y = pointer.y - mousePointTo.y * newScale;
+    setViewport({ scale: newScale, offsetX: x, offsetY: y });
+  };
+
   return (
     <div className="flex-1 relative overflow-hidden bg-gray-50">
       <Stage
@@ -71,9 +106,10 @@ export function Canvas() {
         scaleY={viewport.scale}
         x={viewport.offsetX}
         y={viewport.offsetY}
-        draggable={tool === 'select'}
+        draggable={tool === 'select' || spacePressed}
         onDragEnd={(e) => setViewport({ offsetX: e.target.x(), offsetY: e.target.y() })}
         onClick={handleStageClick}
+        onWheel={handleWheel}
       >
         <Layer>
           {Object.values(shapes).map((shape) => (
