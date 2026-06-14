@@ -3,6 +3,18 @@ import { useEditorStore } from './editorStore';
 
 describe('editorStore', () => {
   beforeEach(() => {
+    const values = new Map<string, string>();
+    vi.stubGlobal('localStorage', {
+      get length() {
+        return values.size;
+      },
+      clear: vi.fn(() => values.clear()),
+      getItem: vi.fn((key: string) => values.get(key) ?? null),
+      key: vi.fn((index: number) => [...values.keys()][index] ?? null),
+      removeItem: vi.fn((key: string) => values.delete(key)),
+      setItem: vi.fn((key: string, value: string) => values.set(key, value)),
+    } satisfies Storage);
+
     useEditorStore.setState({
       shapes: {},
       tool: 'select',
@@ -11,6 +23,20 @@ describe('editorStore', () => {
       undoStack: [],
       redoStack: [],
     });
+  });
+
+  it('defaults showGrid to true when localStorage is empty', () => {
+    expect(useEditorStore.getState().showGrid).toBe(true);
+  });
+
+  it('updates showGrid and writes to localStorage', () => {
+    useEditorStore.getState().setShowGrid(false);
+    expect(useEditorStore.getState().showGrid).toBe(false);
+    expect(window.localStorage.getItem('whiteboard:showGrid')).toBe('false');
+
+    useEditorStore.getState().setShowGrid(true);
+    expect(useEditorStore.getState().showGrid).toBe(true);
+    expect(window.localStorage.getItem('whiteboard:showGrid')).toBe('true');
   });
 
   it('adds a shape', () => {
