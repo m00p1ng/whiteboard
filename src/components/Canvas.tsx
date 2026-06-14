@@ -20,6 +20,7 @@ import {
 import { CreationPreview } from './CreationPreview';
 import { ShapeContextMenu } from './ShapeContextMenu';
 import { LineEndpointHandles } from './LineEndpointHandles';
+import { GridBackground } from './GridBackground';
 
 export function Canvas() {
   const stageRef = useRef<StageType | null>(null);
@@ -31,6 +32,7 @@ export function Canvas() {
   const updateShape = useEditorStore((s) => s.updateShape);
   const removeShape = useEditorStore((s) => s.removeShape);
   const tool = useEditorStore((s) => s.tool);
+  const showGrid = useEditorStore((s) => s.showGrid);
   const setViewport = useEditorStore((s) => s.setViewport);
   const bringToFront = useEditorStore((s) => s.bringToFront);
   const sendToBack = useEditorStore((s) => s.sendToBack);
@@ -334,6 +336,7 @@ export function Canvas() {
         onPointerCancel={handlePointerCancel}
         onWheel={handleWheel}
       >
+        <GridBackground viewport={viewport} visible={showGrid} />
         <Layer>
           {Object.values(shapes).map((shape) => (
             <ShapeRenderer
