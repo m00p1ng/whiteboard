@@ -7,6 +7,7 @@ import { ShapeRenderer } from './ShapeRenderer';
 import { SelectionTransformer } from './SelectionTransformer';
 import { TextEditor } from './TextEditor';
 import type { TextShape } from '@/types/shape';
+import { zoomAtPoint } from '@/utils/geometry';
 
 export function Canvas() {
   const stageRef = useRef<StageType | null>(null);
@@ -104,21 +105,18 @@ export function Canvas() {
 
   const handleWheel = (e: KonvaEventObject<WheelEvent>) => {
     e.evt.preventDefault();
-    const scaleBy = 1.05;
     const stage = e.target.getStage();
     if (!stage) return;
-    const oldScale = stage.scaleX();
     const pointer = stage.getPointerPosition();
     if (!pointer) return;
-    const mousePointTo = {
-      x: (pointer.x - stage.x()) / oldScale,
-      y: (pointer.y - stage.y()) / oldScale,
-    };
-    const direction = e.evt.deltaY > 0 ? -1 : 1;
-    const newScale = direction > 0 ? oldScale * scaleBy : oldScale / scaleBy;
-    const x = pointer.x - mousePointTo.x * newScale;
-    const y = pointer.y - mousePointTo.y * newScale;
-    setViewport({ scale: newScale, offsetX: x, offsetY: y });
+
+    const scaleBy = 1.05;
+    const requestedScale =
+      e.evt.deltaY > 0
+        ? viewport.scale / scaleBy
+        : viewport.scale * scaleBy;
+
+    setViewport(zoomAtPoint(viewport, pointer, requestedScale));
   };
 
   return (
