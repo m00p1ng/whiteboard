@@ -1,4 +1,4 @@
-import { ArrowLeft, Redo2, Trash2, Undo2 } from 'lucide-react';
+import { ArrowLeft, Grid3X3, Redo2, Trash2, Undo2 } from 'lucide-react';
 import { ThemeMenu } from '@/components/ThemeMenu';
 import { Button } from '@/components/ui/button';
 import { useBoardStore } from '@/store/boardStore';
@@ -15,6 +15,8 @@ export function TopBar() {
   const canUndo = useEditorStore((state) => state.undoStack.length > 0);
   const canRedo = useEditorStore((state) => state.redoStack.length > 0);
   const selectedId = useEditorStore((state) => state.selectedId);
+  const showGrid = useEditorStore((state) => state.showGrid);
+  const setShowGrid = useEditorStore((state) => state.setShowGrid);
   const removeShape = useEditorStore((state) => state.removeShape);
   const reset = useEditorStore((state) => state.reset);
 
@@ -60,6 +62,15 @@ export function TopBar() {
           aria-label="Delete"
         >
           <Trash2 className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label={showGrid ? 'Hide grid' : 'Show grid'}
+          aria-pressed={showGrid}
+          onClick={() => setShowGrid(!showGrid)}
+        >
+          <Grid3X3 className="h-4 w-4" />
         </Button>
         <ThemeMenu />
       </div>
