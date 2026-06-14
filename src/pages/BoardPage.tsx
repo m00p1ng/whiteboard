@@ -39,7 +39,7 @@ export function BoardPage() {
   }
 
   return (
-    <div className="relative h-screen w-screen overflow-hidden bg-gray-50">
+    <div className="relative h-screen w-screen overflow-hidden bg-canvas">
       <Canvas />
       <TopBar />
       <LeftToolbar />

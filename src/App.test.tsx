@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import App from './App';
 import { initBoardStore, useBoardStore } from './store/boardStore';
 import { useEditorStore } from './store/editorStore';
+import { ThemeProvider } from './theme/ThemeProvider';
 
 vi.mock('./store/boardStore', async (importOriginal) => {
   const actual = await importOriginal<typeof import('./store/boardStore')>();
@@ -13,6 +14,14 @@ vi.mock('./store/boardStore', async (importOriginal) => {
 });
 
 const mockedInitBoardStore = vi.mocked(initBoardStore);
+
+function renderApp() {
+  return render(
+    <ThemeProvider>
+      <App />
+    </ThemeProvider>
+  );
+}
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -31,7 +40,7 @@ describe('App', () => {
         })
     );
 
-    render(<App />);
+    renderApp();
 
     expect(
       screen.queryByRole('heading', { name: /boards/i })
@@ -47,7 +56,7 @@ describe('App', () => {
   });
 
   it('renders the home page after initialization', async () => {
-    render(<App />);
+    renderApp();
 
     expect(
       await screen.findByRole('button', { name: /new board/i })
@@ -57,7 +66,7 @@ describe('App', () => {
   it('still renders the app when IndexedDB initialization rejects', async () => {
     mockedInitBoardStore.mockRejectedValue(new Error('database unavailable'));
 
-    render(<App />);
+    renderApp();
 
     expect(
       await screen.findByRole('heading', { name: /boards/i })
@@ -65,7 +74,7 @@ describe('App', () => {
   });
 
   it('switches to the editor when creating a board', async () => {
-    render(<App />);
+    renderApp();
     fireEvent.click(
       await screen.findByRole('button', { name: /new board/i })
     );
@@ -74,7 +83,7 @@ describe('App', () => {
   });
 
   it('returns to the home page when clicking back', async () => {
-    render(<App />);
+    renderApp();
     fireEvent.click(
       await screen.findByRole('button', { name: /new board/i })
     );

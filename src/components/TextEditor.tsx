@@ -24,12 +24,13 @@ export function TextEditor({ shape, viewport, onClose }: TextEditorProps) {
     <textarea
       ref={inputRef}
       defaultValue={shape.text}
-      className="absolute z-20 resize-none border border-blue-500 bg-transparent p-1 text-black outline-none"
+      className="absolute z-20 resize-none border border-blue-500 bg-background/90 p-1 outline-none"
       style={{
         left: screenX,
         top: screenY,
         fontSize: shape.fontSize * viewport.scale,
         minWidth: 100,
+        color: shape.fill ?? '#000000',
       }}
       onBlur={(e) => {
         updateShape(shape.id, { text: e.target.value });

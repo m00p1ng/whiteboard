@@ -32,6 +32,7 @@ describe('ShapeTextEditor', () => {
       name: 'Shape text',
     }) as HTMLTextAreaElement;
     const overlay = screen.getByTestId('shape-text-editor-overlay');
+    expect(overlay).toHaveClass('bg-background/90');
     expect(editor).toHaveValue('Hello');
     expect(editor).toHaveFocus();
     expect(editor.selectionStart).toBe(0);

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { ThemeMenu } from '@/components/ThemeMenu';
 import { Button } from '@/components/ui/button';
 import { useBoardStore } from '@/store/boardStore';
 import { useRelativeTime } from '@/hooks/useRelativeTime';
@@ -8,7 +9,7 @@ function BoardUpdatedAt({ updatedAt }: { updatedAt: number }) {
   const relative = useRelativeTime(updatedAt);
   return (
     <p
-      className="text-sm text-gray-500 mt-1"
+      className="mt-1 text-sm text-muted-foreground"
       title={new Date(updatedAt).toLocaleString()}
     >
       Updated {relative}
@@ -33,19 +34,22 @@ export function HomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
+    <div className="min-h-screen bg-canvas p-8">
       <div className="max-w-5xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl font-bold tracking-tight">Boards</h1>
-          <Button onClick={() => createBoard()}>
-            <Plus className="h-4 w-4 mr-2" />
-            New board
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button onClick={() => createBoard()}>
+              <Plus className="h-4 w-4 mr-2" />
+              New board
+            </Button>
+            <ThemeMenu />
+          </div>
         </div>
 
         {boards.length === 0 ? (
           <div className="text-center py-20">
-            <p className="text-gray-500">No boards yet.</p>
+            <p className="text-muted-foreground">No boards yet.</p>
             <Button onClick={() => createBoard()} className="mt-4">
               Create your first board
             </Button>
@@ -58,7 +62,7 @@ export function HomePage() {
             {sortedBoards.map((board) => (
               <div
                 key={board.id}
-                className="bg-white rounded-lg border p-4 shadow-sm hover:shadow-md transition-shadow"
+                className="rounded-lg border bg-card p-4 text-card-foreground shadow-sm transition-shadow hover:shadow-md"
               >
                 {editingId === board.id ? (
                   <input
@@ -71,7 +75,7 @@ export function HomePage() {
                         handleRename(board.id, e.currentTarget.value);
                       }
                     }}
-                    className="w-full border rounded px-2 py-1 text-sm"
+                    className="w-full rounded border bg-background px-2 py-1 text-sm"
                   />
                 ) : (
                   <h2

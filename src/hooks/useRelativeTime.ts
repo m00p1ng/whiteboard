@@ -4,19 +4,15 @@ import { formatDistanceToNow } from 'date-fns';
 const UPDATE_INTERVAL_MS = 60_000;
 
 export function useRelativeTime(timestamp: number): string {
-  const [relative, setRelative] = useState(() =>
-    formatDistanceToNow(timestamp, { addSuffix: true })
-  );
+  const [, setCurrentTime] = useState(Date.now);
 
   useEffect(() => {
-    setRelative(formatDistanceToNow(timestamp, { addSuffix: true }));
-
     const intervalId = setInterval(() => {
-      setRelative(formatDistanceToNow(timestamp, { addSuffix: true }));
+      setCurrentTime(Date.now());
     }, UPDATE_INTERVAL_MS);
 
     return () => clearInterval(intervalId);
-  }, [timestamp]);
+  }, []);
 
-  return relative;
+  return formatDistanceToNow(timestamp, { addSuffix: true });
 }

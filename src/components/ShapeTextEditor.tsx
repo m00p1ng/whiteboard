@@ -40,7 +40,7 @@ export function ShapeTextEditor({
   return (
     <div
       data-testid="shape-text-editor-overlay"
-      className="absolute z-20 flex items-center border border-blue-500 bg-white/90"
+      className="absolute z-20 flex items-center border border-blue-500 bg-background/90"
       style={{
         left: worldBounds.x * viewport.scale + viewport.offsetX,
         top: worldBounds.y * viewport.scale + viewport.offsetY,

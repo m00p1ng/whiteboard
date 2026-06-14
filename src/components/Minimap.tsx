@@ -11,6 +11,7 @@ import {
   getShapeBounds,
   type Bounds,
 } from '@/utils/geometry';
+import { useTheme } from '@/theme/ThemeProvider';
 
 const PANEL_WIDTH = 180;
 const PANEL_HEIGHT = 120;
@@ -39,11 +40,16 @@ function getWorldBounds(bounds: Bounds[]): Bounds {
 }
 
 export function Minimap() {
+  const { theme } = useTheme();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const shapes = useEditorStore((state) => state.shapes);
   const viewport = useEditorStore((state) => state.viewport);
   const setViewport = useEditorStore((state) => state.setViewport);
+  const colors =
+    theme === 'dark'
+      ? { background: '#191c23', shape: '#64748b' }
+      : { background: '#f8fafc', shape: '#94a3b8' };
 
   const shapeBounds = useMemo(
     () =>
@@ -80,10 +86,10 @@ export function Minimap() {
     if (!context) return;
 
     context.clearRect(0, 0, PANEL_WIDTH, PANEL_HEIGHT);
-    context.fillStyle = '#f8fafc';
+    context.fillStyle = colors.background;
     context.fillRect(0, 0, PANEL_WIDTH, PANEL_HEIGHT);
 
-    context.fillStyle = '#94a3b8';
+    context.fillStyle = colors.shape;
     for (const bounds of shapeBounds) {
       const position = worldToMinimap(bounds.x, bounds.y);
       context.fillRect(
@@ -113,7 +119,14 @@ export function Minimap() {
       visibleWorld.width * minimapScale,
       visibleWorld.height * minimapScale
     );
-  }, [minimapScale, shapeBounds, viewport, worldToMinimap]);
+  }, [
+    colors.background,
+    colors.shape,
+    minimapScale,
+    shapeBounds,
+    viewport,
+    worldToMinimap,
+  ]);
 
   const panToPointer = (event: ReactPointerEvent<HTMLCanvasElement>) => {
     const rect = event.currentTarget.getBoundingClientRect();

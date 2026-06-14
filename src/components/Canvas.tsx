@@ -319,7 +319,7 @@ export function Canvas() {
   };
 
   return (
-    <div className="flex-1 relative overflow-hidden bg-gray-50">
+    <div className="relative flex-1 overflow-hidden bg-canvas">
       <Stage
         ref={stageRef}
         width={window.innerWidth}

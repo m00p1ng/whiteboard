@@ -1,20 +1,29 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, within } from '@testing-library/react';
 import { HomePage } from './HomePage';
 import { useBoardStore } from '@/store/boardStore';
+import { ThemeProvider } from '@/theme/ThemeProvider';
 
 beforeEach(() => {
   useBoardStore.setState({ boards: [], currentBoardId: null });
 });
 
+function renderHomePage() {
+  return render(
+    <ThemeProvider>
+      <HomePage />
+    </ThemeProvider>
+  );
+}
+
 describe('HomePage', () => {
   it('shows empty state when no boards exist', () => {
-    render(<HomePage />);
+    renderHomePage();
     expect(screen.getByText(/no boards yet/i)).toBeInTheDocument();
   });
 
   it('creates a board', () => {
-    render(<HomePage />);
+    renderHomePage();
     fireEvent.click(screen.getByRole('button', { name: /new board/i }));
     expect(useBoardStore.getState().boards).toHaveLength(1);
     expect(useBoardStore.getState().currentBoardId).not.toBeNull();
@@ -22,13 +31,13 @@ describe('HomePage', () => {
 
   it('lists existing boards', () => {
     useBoardStore.getState().createBoard('Project plan');
-    render(<HomePage />);
+    renderHomePage();
     expect(screen.getByText('Project plan')).toBeInTheDocument();
   });
 
   it('deletes a board', () => {
     useBoardStore.getState().createBoard('Delete me');
-    render(<HomePage />);
+    renderHomePage();
     fireEvent.click(screen.getByLabelText(/delete delete me/i));
     expect(useBoardStore.getState().boards).toHaveLength(0);
   });
@@ -61,7 +70,7 @@ describe('HomePage', () => {
       currentBoardId: null,
     });
 
-    render(<HomePage />);
+    renderHomePage();
 
     const boardGrid = screen.getByTestId('board-grid');
     const headings = within(boardGrid).getAllByRole('heading', { level: 2 });
@@ -98,10 +107,17 @@ describe('HomePage', () => {
         currentBoardId: null,
       });
 
-      render(<HomePage />);
+      renderHomePage();
       expect(screen.getByText(/5 minutes ago/i)).toBeInTheDocument();
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it('shows the appearance menu beside home-page actions', () => {
+    renderHomePage();
+    expect(
+      screen.getByRole('button', { name: 'Appearance' })
+    ).toBeInTheDocument();
   });
 });

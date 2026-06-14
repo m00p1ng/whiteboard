@@ -1,4 +1,5 @@
 import { ArrowLeft, Redo2, Trash2, Undo2 } from 'lucide-react';
+import { ThemeMenu } from '@/components/ThemeMenu';
 import { Button } from '@/components/ui/button';
 import { useBoardStore } from '@/store/boardStore';
 import { useEditorStore } from '@/store/editorStore';
@@ -11,6 +12,8 @@ export function TopBar() {
   const closeBoard = useBoardStore((state) => state.closeBoard);
   const undo = useEditorStore((state) => state.undo);
   const redo = useEditorStore((state) => state.redo);
+  const canUndo = useEditorStore((state) => state.undoStack.length > 0);
+  const canRedo = useEditorStore((state) => state.redoStack.length > 0);
   const selectedId = useEditorStore((state) => state.selectedId);
   const removeShape = useEditorStore((state) => state.removeShape);
   const reset = useEditorStore((state) => state.reset);
@@ -39,12 +42,16 @@ export function TopBar() {
       </div>
 
       <div className="flex items-center gap-1">
-        <Button variant="ghost" size="icon" onClick={undo} aria-label="Undo">
-          <Undo2 className="h-4 w-4" />
-        </Button>
-        <Button variant="ghost" size="icon" onClick={redo} aria-label="Redo">
-          <Redo2 className="h-4 w-4" />
-        </Button>
+        {canUndo && (
+          <Button variant="ghost" size="icon" onClick={undo} aria-label="Undo">
+            <Undo2 className="h-4 w-4" />
+          </Button>
+        )}
+        {canRedo && (
+          <Button variant="ghost" size="icon" onClick={redo} aria-label="Redo">
+            <Redo2 className="h-4 w-4" />
+          </Button>
+        )}
         <Button
           variant="ghost"
           size="icon"
@@ -54,6 +61,7 @@ export function TopBar() {
         >
           <Trash2 className="h-4 w-4" />
         </Button>
+        <ThemeMenu />
       </div>
     </header>
   );
