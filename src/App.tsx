@@ -1,15 +1,10 @@
-import { Canvas } from '@/components/Canvas';
-import { Toolbar } from '@/components/Toolbar';
-import { useHotkeys } from '@/hooks/useHotkeys';
+import { useBoardStore } from '@/store/boardStore';
+import { BoardPage } from '@/pages/BoardPage';
+import { HomePage } from '@/pages/HomePage';
 
 function App() {
-  useHotkeys();
-  return (
-    <div className="h-screen w-screen relative overflow-hidden bg-gray-50">
-      <Toolbar />
-      <Canvas />
-    </div>
-  );
+  const currentBoardId = useBoardStore((state) => state.currentBoardId);
+  return currentBoardId ? <BoardPage /> : <HomePage />;
 }
 
 export default App;
