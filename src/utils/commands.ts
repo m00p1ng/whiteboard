@@ -31,6 +31,31 @@ export function createRemoveShapeCommand(shape: Shape): Command {
   };
 }
 
+export function createReorderCommand(
+  prevOrder: string[],
+  nextOrder: string[]
+): Command {
+  return {
+    do: (state) => {
+      state.shapes = reorderShapes(state.shapes, nextOrder);
+    },
+    undo: (state) => {
+      state.shapes = reorderShapes(state.shapes, prevOrder);
+    },
+  };
+}
+
+function reorderShapes(
+  shapes: Record<string, Shape>,
+  order: string[]
+): Record<string, Shape> {
+  const next: Record<string, Shape> = {};
+  for (const id of order) {
+    if (shapes[id]) next[id] = shapes[id];
+  }
+  return next;
+}
+
 export function createUpdateShapeCommand(
   id: string,
   prev: Partial<Shape>,
