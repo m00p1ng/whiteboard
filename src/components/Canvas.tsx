@@ -83,13 +83,15 @@ export function Canvas() {
         setLineStart({ x: pos.x, y: pos.y });
       } else {
         addShape({
-          id: crypto.randomUUID(),
+          id,
           type: 'line',
           x: 0,
           y: 0,
           points: [lineStart.x, lineStart.y, pos.x, pos.y],
         });
         setLineStart(null);
+        setSelectedId(id);
+        setTool('select');
       }
     }
   };

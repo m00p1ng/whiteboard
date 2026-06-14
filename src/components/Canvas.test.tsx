@@ -107,4 +107,34 @@ describe('Canvas shape creation selection', () => {
     expect(useEditorStore.getState().tool).toBe('connector');
     expect(Object.keys(useEditorStore.getState().shapes)).toEqual(['existing']);
   });
+
+  it('selects a line and returns to Select only after the second creation click', () => {
+    useEditorStore.getState().setTool('line');
+    render(<Canvas />);
+    const canvas = screen.getByRole('button', { name: 'board canvas' });
+
+    fireEvent.click(canvas);
+
+    expect(useEditorStore.getState().selectedId).toBeNull();
+    expect(useEditorStore.getState().tool).toBe('line');
+    expect(Object.keys(useEditorStore.getState().shapes)).toEqual(['existing']);
+
+    konvaMock.pointer = { x: 30, y: 40 };
+    fireEvent.click(canvas);
+
+    expect(useEditorStore.getState().tool).toBe('line');
+    expect(Object.keys(useEditorStore.getState().shapes)).toEqual(['existing']);
+
+    konvaMock.pointer = { x: 90, y: 110 };
+    fireEvent.click(canvas);
+
+    const state = useEditorStore.getState();
+    expect(state.shapes['00000000-0000-4000-8000-000000000001']).toMatchObject({
+      type: 'line',
+      points: [30, 40, 90, 110],
+    });
+    expect(state.selectedId).toBe('00000000-0000-4000-8000-000000000001');
+    expect(state.tool).toBe('select');
+    expect(screen.queryByTestId('selection-transformer')).not.toBeInTheDocument();
+  });
 });
