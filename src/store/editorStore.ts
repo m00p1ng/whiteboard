@@ -34,6 +34,13 @@ interface EditorState {
   setSelectedId: (id: string | null) => void;
   setViewport: (updates: Partial<Viewport>) => void;
   setShapes: (shapes: Record<string, Shape>) => void;
+  setShapeDraft: (id: string, updates: Record<string, unknown>) => void;
+  recordFieldChange: (
+    id: string,
+    field: string,
+    prevValue: unknown,
+    nextValue: unknown
+  ) => void;
   bringToFront: (id: string) => void;
   sendToBack: (id: string) => void;
   bringForward: (id: string) => void;
@@ -118,6 +125,29 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   setViewport: (updates) =>
     set((state) => ({ viewport: { ...state.viewport, ...updates } })),
   setShapes: (shapes) => set({ shapes, undoStack: [], redoStack: [] }),
+  setShapeDraft: (id, updates) => {
+    const shape = get().shapes[id];
+    if (!shape) return;
+    set((state) => ({
+      shapes: {
+        ...state.shapes,
+        [id]: { ...shape, ...updates } as Shape,
+      },
+    }));
+  },
+  recordFieldChange: (id, field, prevValue, nextValue) => {
+    if (!get().shapes[id] || prevValue === nextValue) return;
+    get().execute({
+      do: (state) => {
+        const shape = state.shapes[id];
+        if (shape) (shape as unknown as Record<string, unknown>)[field] = nextValue;
+      },
+      undo: (state) => {
+        const shape = state.shapes[id];
+        if (shape) (shape as unknown as Record<string, unknown>)[field] = prevValue;
+      },
+    });
+  },
   bringToFront: (id) => {
     const order = Object.keys(get().shapes);
     const idx = order.indexOf(id);

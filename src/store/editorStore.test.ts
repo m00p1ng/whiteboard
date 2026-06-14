@@ -40,6 +40,66 @@ describe('editorStore', () => {
     redo();
     expect(useEditorStore.getState().shapes['r1']).toBeDefined();
   });
+
+  it('sets a live draft update without touching undo/redo stacks', () => {
+    const shape = {
+      id: 'r1',
+      type: 'rect' as const,
+      x: 0,
+      y: 0,
+      width: 10,
+      height: 10,
+      fill: '#ffffff',
+    };
+    useEditorStore.getState().addShape(shape);
+    const stackLengthBefore = useEditorStore.getState().undoStack.length;
+
+    useEditorStore.getState().setShapeDraft('r1', { fill: '#ff0000' });
+
+    expect(useEditorStore.getState().shapes['r1'].fill).toBe('#ff0000');
+    expect(useEditorStore.getState().undoStack).toHaveLength(stackLengthBefore);
+    expect(useEditorStore.getState().redoStack).toHaveLength(0);
+  });
+
+  it('records a single undo entry for a field change', () => {
+    const shape = {
+      id: 'r1',
+      type: 'rect' as const,
+      x: 0,
+      y: 0,
+      width: 10,
+      height: 10,
+      fill: '#ffffff',
+    };
+    useEditorStore.getState().addShape(shape);
+    useEditorStore.getState().setShapeDraft('r1', { fill: '#ff0000' });
+
+    useEditorStore.getState().recordFieldChange('r1', 'fill', '#ffffff', '#ff0000');
+
+    expect(useEditorStore.getState().shapes['r1'].fill).toBe('#ff0000');
+    useEditorStore.getState().undo();
+    expect(useEditorStore.getState().shapes['r1'].fill).toBe('#ffffff');
+    useEditorStore.getState().redo();
+    expect(useEditorStore.getState().shapes['r1'].fill).toBe('#ff0000');
+  });
+
+  it('does not record a change when prev and next values are equal', () => {
+    const shape = {
+      id: 'r1',
+      type: 'rect' as const,
+      x: 0,
+      y: 0,
+      width: 10,
+      height: 10,
+      fill: '#ffffff',
+    };
+    useEditorStore.getState().addShape(shape);
+    const stackLengthBefore = useEditorStore.getState().undoStack.length;
+
+    useEditorStore.getState().recordFieldChange('r1', 'fill', '#ffffff', '#ffffff');
+
+    expect(useEditorStore.getState().undoStack).toHaveLength(stackLengthBefore);
+  });
 });
 
 describe('editorStore z-order actions', () => {
