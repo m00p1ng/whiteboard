@@ -1,10 +1,16 @@
 import { act, render } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BoardPage } from './BoardPage';
+import { putBoard } from '@/db/boardDb';
 import { useBoardStore } from '@/store/boardStore';
 import { useEditorStore } from '@/store/editorStore';
 import type { RectShape } from '@/types/shape';
 
+vi.mock('@/db/boardDb', () => ({
+  loadBoards: vi.fn(),
+  putBoard: vi.fn().mockResolvedValue(undefined),
+  deleteBoard: vi.fn(),
+}));
 vi.mock('@/components/Canvas', () => ({
   Canvas: () => <div>Canvas</div>,
 }));
@@ -24,6 +30,8 @@ vi.mock('@/hooks/useHotkeys', () => ({
   useHotkeys: () => undefined,
 }));
 
+const mockedPutBoard = vi.mocked(putBoard);
+
 const savedShape: RectShape = {
   id: 'saved',
   type: 'rect',
@@ -34,7 +42,7 @@ const savedShape: RectShape = {
 };
 
 beforeEach(() => {
-  localStorage.clear();
+  mockedPutBoard.mockClear();
   useEditorStore.getState().reset();
   useBoardStore.setState({
     boards: [
@@ -48,10 +56,6 @@ beforeEach(() => {
     ],
     currentBoardId: 'board-1',
   });
-  localStorage.setItem(
-    'whiteboard:boards',
-    JSON.stringify(useBoardStore.getState().boards)
-  );
 });
 
 describe('BoardPage persistence', () => {
@@ -62,9 +66,11 @@ describe('BoardPage persistence', () => {
       [savedShape.id]: savedShape,
     });
 
-    const stored = JSON.parse(localStorage.getItem('whiteboard:boards')!);
-    expect(stored[0].shapes).toEqual({ [savedShape.id]: savedShape });
-    expect(stored[0].updatedAt).toBe(200);
+    expect(mockedPutBoard).not.toHaveBeenCalled();
+    expect(useBoardStore.getState().boards[0]).toMatchObject({
+      shapes: { [savedShape.id]: savedShape },
+      updatedAt: 200,
+    });
   });
 
   it('persists the first shape change after hydration', () => {
@@ -87,8 +93,6 @@ describe('BoardPage persistence', () => {
     expect(board.shapes).toHaveProperty('new-shape');
     expect(board.updatedAt).toBe(500);
 
-    const stored = JSON.parse(localStorage.getItem('whiteboard:boards')!);
-    expect(stored[0].shapes).toHaveProperty('new-shape');
-    expect(stored[0].updatedAt).toBe(500);
+    expect(mockedPutBoard).toHaveBeenCalledWith(board);
   });
 });

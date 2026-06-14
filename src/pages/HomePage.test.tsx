@@ -4,7 +4,6 @@ import { HomePage } from './HomePage';
 import { useBoardStore } from '@/store/boardStore';
 
 beforeEach(() => {
-  localStorage.clear();
   useBoardStore.setState({ boards: [], currentBoardId: null });
 });
 
