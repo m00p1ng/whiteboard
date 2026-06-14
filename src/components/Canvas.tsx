@@ -7,7 +7,7 @@ import { ShapeRenderer } from './ShapeRenderer';
 import { SelectionTransformer } from './SelectionTransformer';
 import { TextEditor } from './TextEditor';
 import type { TextShape } from '@/types/shape';
-import { zoomAtPoint } from '@/utils/geometry';
+import { getAnchorPoint, zoomAtPoint } from '@/utils/geometry';
 import type { Point } from '@/utils/geometry';
 import {
   createShapeFromGesture,
@@ -30,6 +30,7 @@ export function Canvas() {
   const setTool = useEditorStore((s) => s.setTool);
   const setViewport = useEditorStore((s) => s.setViewport);
   const [connectorSource, setConnectorSource] = useState<string | null>(null);
+  const [connectorPointer, setConnectorPointer] = useState<Point | null>(null);
   const [spacePressed, setSpacePressed] = useState(false);
   const [editingTextId, setEditingTextId] = useState<string | null>(null);
   const [shapeDraft, setShapeDraft] = useState<ShapeDraft | null>(null);
@@ -51,14 +52,19 @@ export function Canvas() {
     draftToolRef.current = null;
   };
 
+  const clearConnectorDraft = () => {
+    setConnectorSource(null);
+    setConnectorPointer(null);
+    setSelectedId(null);
+  };
+
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
       if (e.code === 'Space') setSpacePressed(true);
       if (e.key === 'Escape') {
         setShapeDraft(null);
         draftToolRef.current = null;
-        setConnectorSource(null);
-        setSelectedId(null);
+        clearConnectorDraft();
       }
     };
     const up = (e: KeyboardEvent) => {
@@ -78,6 +84,14 @@ export function Canvas() {
       draftToolRef.current = null;
     }
   }, [tool, shapeDraft]);
+
+  useEffect(() => {
+    if (tool !== 'connector' && connectorSource) {
+      setConnectorSource(null);
+      setConnectorPointer(null);
+      setSelectedId(null);
+    }
+  }, [connectorSource, setSelectedId, tool]);
 
   const selectedShape = selectedId ? shapes[selectedId] ?? null : null;
 
@@ -121,6 +135,10 @@ export function Canvas() {
           ? { ...draft, currentWorld: world, currentScreen: screen }
           : null
       );
+    }
+
+    if (tool === 'connector' && connectorSource) {
+      setConnectorPointer(world);
     }
   };
 
@@ -170,27 +188,41 @@ export function Canvas() {
 
   const handleShapeClick = (shapeId: string) => {
     if (tool === 'connector') {
+      if (!shapes[shapeId]) return;
       if (!connectorSource) {
         setConnectorSource(shapeId);
+        setConnectorPointer(getAnchorPoint(shapes[shapeId], 'center'));
         setSelectedId(shapeId);
         return;
       }
-      if (connectorSource !== shapeId) {
-        addShape({
-          id: crypto.randomUUID(),
-          type: 'connector',
-          x: 0,
-          y: 0,
-          fromId: connectorSource,
-          toId: shapeId,
-        });
-      }
-      setConnectorSource(null);
-      setSelectedId(null);
+      if (connectorSource === shapeId) return;
+
+      addShape({
+        id: crypto.randomUUID(),
+        type: 'connector',
+        x: 0,
+        y: 0,
+        fromId: connectorSource,
+        toId: shapeId,
+      });
+      clearConnectorDraft();
       return;
     }
     setSelectedId(shapeId);
   };
+
+  const connectorPoints = useMemo(() => {
+    if (!connectorSource || !connectorPointer) return null;
+    const source = shapes[connectorSource];
+    if (!source) return null;
+    const start = getAnchorPoint(source, 'center');
+    return [
+      start.x,
+      start.y,
+      connectorPointer.x,
+      connectorPointer.y,
+    ] as [number, number, number, number];
+  }, [connectorPointer, connectorSource, shapes]);
 
   const handleShapeDblClick = (shapeId: string) => {
     const shape = shapes[shapeId];
@@ -244,7 +276,7 @@ export function Canvas() {
               onChange={(updates) => updateShape(shape.id, updates)}
             />
           ))}
-          <CreationPreview shape={previewShape} />
+          <CreationPreview shape={previewShape} connectorPoints={connectorPoints} />
           <SelectionTransformer selectedShape={selectedShape} />
         </Layer>
       </Stage>

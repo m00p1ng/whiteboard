@@ -286,3 +286,84 @@ describe('Canvas shape creation', () => {
     ).toBe('');
   });
 });
+
+describe('Canvas connector creation', () => {
+  it('previews a connector from the source center to the pointer', () => {
+    useEditorStore.getState().setTool('connector');
+    render(<Canvas />);
+
+    fireEvent.click(screen.getByTestId('shape-existing'));
+    konvaMock.pointer = { x: 200, y: 150 };
+    fireEvent.click(screen.getByRole('button', { name: 'pointer move' }));
+
+    expect(
+      JSON.parse(
+        screen.getByTestId('creation-preview').getAttribute('data-connector')!
+      )
+    ).toEqual([60, 50, 200, 150]);
+    expect(useEditorStore.getState().tool).toBe('connector');
+  });
+
+  it('commits a connector only to a different existing shape', () => {
+    useEditorStore.setState({
+      shapes: {
+        existing: existingShape,
+        target: {
+          id: 'target',
+          type: 'circle',
+          x: 200,
+          y: 150,
+          radiusX: 30,
+          radiusY: 20,
+        },
+      },
+    });
+    useEditorStore.getState().setTool('connector');
+    render(<Canvas />);
+
+    fireEvent.click(screen.getByTestId('shape-existing'));
+    fireEvent.click(screen.getByTestId('shape-existing'));
+    expect(Object.keys(useEditorStore.getState().shapes)).toHaveLength(2);
+
+    fireEvent.click(screen.getByTestId('shape-target'));
+    expect(
+      useEditorStore.getState().shapes[
+        '00000000-0000-4000-8000-000000000001'
+      ]
+    ).toMatchObject({
+      type: 'connector',
+      fromId: 'existing',
+      toId: 'target',
+    });
+  });
+
+  it('keeps a connector pending after an empty-stage click', () => {
+    useEditorStore.getState().setTool('connector');
+    render(<Canvas />);
+
+    fireEvent.click(screen.getByTestId('shape-existing'));
+    konvaMock.pointer = { x: 200, y: 150 };
+    fireEvent.click(screen.getByRole('button', { name: 'pointer down' }));
+    fireEvent.click(screen.getByRole('button', { name: 'pointer move' }));
+
+    expect(
+      screen.getByTestId('creation-preview').getAttribute('data-connector')
+    ).not.toBe('');
+  });
+
+  it('cancels a pending connector with Escape and preserves the tool', () => {
+    useEditorStore.getState().setTool('connector');
+    render(<Canvas />);
+
+    fireEvent.click(screen.getByTestId('shape-existing'));
+    konvaMock.pointer = { x: 200, y: 150 };
+    fireEvent.click(screen.getByRole('button', { name: 'pointer move' }));
+    fireEvent.keyDown(window, { key: 'Escape' });
+
+    expect(
+      screen.getByTestId('creation-preview').getAttribute('data-connector')
+    ).toBe('');
+    expect(useEditorStore.getState().tool).toBe('connector');
+    expect(useEditorStore.getState().selectedId).toBeNull();
+  });
+});
