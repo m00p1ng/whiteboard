@@ -32,6 +32,8 @@ interface EditorState {
   setTool: (tool: Tool) => void;
   setSelectedId: (id: string | null) => void;
   setViewport: (updates: Partial<Viewport>) => void;
+  setShapes: (shapes: Record<string, Shape>) => void;
+  reset: () => void;
 }
 
 export const useEditorStore = create<EditorState>((set, get) => ({
@@ -74,15 +76,22 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   },
   execute: (command) =>
     set((state) => {
-      command.do(state);
-      return { undoStack: [...state.undoStack, command], redoStack: [] };
+      const nextShapes = { ...state.shapes };
+      command.do({ shapes: nextShapes });
+      return {
+        shapes: nextShapes,
+        undoStack: [...state.undoStack, command],
+        redoStack: [],
+      };
     }),
   undo: () =>
     set((state) => {
       const command = state.undoStack.at(-1);
       if (!command) return state;
-      command.undo(state);
+      const nextShapes = { ...state.shapes };
+      command.undo({ shapes: nextShapes });
       return {
+        shapes: nextShapes,
         undoStack: state.undoStack.slice(0, -1),
         redoStack: [...state.redoStack, command],
       };
@@ -91,8 +100,10 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     set((state) => {
       const command = state.redoStack.at(-1);
       if (!command) return state;
-      command.do(state);
+      const nextShapes = { ...state.shapes };
+      command.do({ shapes: nextShapes });
       return {
+        shapes: nextShapes,
         undoStack: [...state.undoStack, command],
         redoStack: state.redoStack.slice(0, -1),
       };
@@ -101,4 +112,14 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   setSelectedId: (selectedId) => set({ selectedId }),
   setViewport: (updates) =>
     set((state) => ({ viewport: { ...state.viewport, ...updates } })),
+  setShapes: (shapes) => set({ shapes, undoStack: [], redoStack: [] }),
+  reset: () =>
+    set({
+      shapes: {},
+      tool: 'select',
+      selectedId: null,
+      viewport: { scale: 1, offsetX: 0, offsetY: 0 },
+      undoStack: [],
+      redoStack: [],
+    }),
 }));
