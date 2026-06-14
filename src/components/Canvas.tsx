@@ -18,6 +18,7 @@ export function Canvas() {
   const addShape = useEditorStore((s) => s.addShape);
   const updateShape = useEditorStore((s) => s.updateShape);
   const tool = useEditorStore((s) => s.tool);
+  const setTool = useEditorStore((s) => s.setTool);
   const setViewport = useEditorStore((s) => s.setViewport);
   const [connectorSource, setConnectorSource] = useState<string | null>(null);
   const [spacePressed, setSpacePressed] = useState(false);
@@ -47,15 +48,36 @@ export function Canvas() {
       setSelectedId(null);
       return;
     }
+    if (
+      selectedId &&
+      (tool === 'rect' || tool === 'circle' || tool === 'text' || tool === 'line')
+    ) {
+      setSelectedId(null);
+      return;
+    }
     const pos = e.target.getStage()?.getPointerPosition();
     if (!pos) return;
     const id = crypto.randomUUID();
     if (tool === 'rect') {
-      addShape({ id, type: 'rect', x: pos.x, y: pos.y, width: 100, height: 60, fill: '#fff' });
+      addShape({
+        id,
+        type: 'rect',
+        x: pos.x,
+        y: pos.y,
+        width: 100,
+        height: 60,
+        fill: '#fff',
+      });
+      setSelectedId(id);
+      setTool('select');
     } else if (tool === 'circle') {
       addShape({ id, type: 'circle', x: pos.x, y: pos.y, radius: 40, fill: '#fff' });
+      setSelectedId(id);
+      setTool('select');
     } else if (tool === 'text') {
       addShape({ id, type: 'text', x: pos.x, y: pos.y, text: 'Text', fontSize: 18 });
+      setSelectedId(id);
+      setTool('select');
     } else if (tool === 'line') {
       if (!lineStart) {
         setLineStart({ x: pos.x, y: pos.y });
