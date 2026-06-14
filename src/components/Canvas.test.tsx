@@ -81,15 +81,63 @@ vi.mock('./ShapeRenderer', () => ({
   ShapeRenderer: ({
     shape,
     onSelect,
+    onContextMenu,
   }: {
     shape: { id: string };
     onSelect: () => void;
+    onContextMenu?: (e: {
+      evt: { preventDefault: () => void; clientX: number; clientY: number };
+    }) => void;
   }) => (
-    <button
-      type="button"
-      data-testid={`shape-${shape.id}`}
-      onClick={onSelect}
-    />
+    <div>
+      <button
+        type="button"
+        data-testid={`shape-${shape.id}`}
+        onClick={onSelect}
+      />
+      <button
+        type="button"
+        aria-label={`context-menu-${shape.id}`}
+        onClick={() =>
+          onContextMenu?.({
+            evt: { preventDefault: vi.fn(), clientX: 50, clientY: 60 },
+          })
+        }
+      />
+    </div>
+  ),
+}));
+
+vi.mock('./ShapeContextMenu', () => ({
+  ShapeContextMenu: ({
+    canBringForward,
+    canSendBackward,
+    onBringToFront,
+    onBringForward,
+    onSendBackward,
+    onSendToBack,
+  }: {
+    canBringForward: boolean;
+    canSendBackward: boolean;
+    onBringToFront: () => void;
+    onBringForward: () => void;
+    onSendBackward: () => void;
+    onSendToBack: () => void;
+  }) => (
+    <div role="menu">
+      <button type="button" onClick={onBringToFront}>
+        Bring to Front
+      </button>
+      <button type="button" disabled={!canBringForward} onClick={onBringForward}>
+        Bring Forward
+      </button>
+      <button type="button" disabled={!canSendBackward} onClick={onSendBackward}>
+        Send Backward
+      </button>
+      <button type="button" onClick={onSendToBack}>
+        Send to Back
+      </button>
+    </div>
   ),
 }));
 
@@ -407,5 +455,54 @@ describe('Canvas connector creation', () => {
     ).toBe('');
     expect(useEditorStore.getState().tool).toBe('connector');
     expect(useEditorStore.getState().selectedId).toBeNull();
+  });
+});
+
+describe('Canvas shape context menu', () => {
+  it('opens the menu and selects the shape on right-click', () => {
+    render(<Canvas />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'context-menu-existing' }));
+
+    expect(useEditorStore.getState().selectedId).toBe('existing');
+    expect(screen.getByRole('menu')).toBeInTheDocument();
+  });
+
+  it('brings the shape to front and closes the menu', () => {
+    useEditorStore.setState({
+      shapes: {
+        existing: existingShape,
+        other: { ...existingShape, id: 'other' },
+      },
+    });
+    render(<Canvas />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'context-menu-existing' }));
+    fireEvent.click(screen.getByText('Bring to Front'));
+
+    expect(Object.keys(useEditorStore.getState().shapes)).toEqual(['other', 'existing']);
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+  });
+
+  it('closes the menu on Escape', () => {
+    render(<Canvas />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'context-menu-existing' }));
+    expect(screen.getByRole('menu')).toBeInTheDocument();
+
+    fireEvent.keyDown(window, { key: 'Escape' });
+
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+  });
+
+  it('closes the menu on stage pointer down', () => {
+    render(<Canvas />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'context-menu-existing' }));
+    expect(screen.getByRole('menu')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'pointer down' }));
+
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
   });
 });

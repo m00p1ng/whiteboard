@@ -17,6 +17,7 @@ import {
   type ShapeDraft,
 } from '@/utils/creationGeometry';
 import { CreationPreview } from './CreationPreview';
+import { ShapeContextMenu } from './ShapeContextMenu';
 
 export function Canvas() {
   const stageRef = useRef<StageType | null>(null);
@@ -29,11 +30,20 @@ export function Canvas() {
   const tool = useEditorStore((s) => s.tool);
   const setTool = useEditorStore((s) => s.setTool);
   const setViewport = useEditorStore((s) => s.setViewport);
+  const bringToFront = useEditorStore((s) => s.bringToFront);
+  const sendToBack = useEditorStore((s) => s.sendToBack);
+  const bringForward = useEditorStore((s) => s.bringForward);
+  const sendBackward = useEditorStore((s) => s.sendBackward);
   const [connectorSource, setConnectorSource] = useState<string | null>(null);
   const [connectorPointer, setConnectorPointer] = useState<Point | null>(null);
   const [spacePressed, setSpacePressed] = useState(false);
   const [editingTextId, setEditingTextId] = useState<string | null>(null);
   const [shapeDraft, setShapeDraft] = useState<ShapeDraft | null>(null);
+  const [contextMenu, setContextMenu] = useState<{
+    shapeId: string;
+    x: number;
+    y: number;
+  } | null>(null);
   const draftToolRef = useRef<CreationTool | null>(null);
   const connectorToolRef = useRef<typeof tool | null>(null);
   const panStateRef = useRef<{ screen: Point; offset: Point } | null>(null);
@@ -67,6 +77,7 @@ export function Canvas() {
         setShapeDraft(null);
         draftToolRef.current = null;
         clearConnectorDraft();
+        setContextMenu(null);
       }
     };
     const up = (e: KeyboardEvent) => {
@@ -99,6 +110,8 @@ export function Canvas() {
   const selectedShape = selectedId ? shapes[selectedId] ?? null : null;
 
   const handlePointerDown = (e: KonvaEventObject<PointerEvent>) => {
+    if (contextMenu) setContextMenu(null);
+
     const stage = e.target.getStage();
     if (!stage) return;
     const screen = getScreenPointer(stage);
@@ -241,6 +254,23 @@ export function Canvas() {
     setSelectedId(shapeId);
   };
 
+  const handleShapeContextMenu = (
+    shapeId: string,
+    e: KonvaEventObject<PointerEvent>
+  ) => {
+    e.evt.preventDefault();
+    setSelectedId(shapeId);
+    setContextMenu({ shapeId, x: e.evt.clientX, y: e.evt.clientY });
+  };
+
+  const contextMenuIndex = contextMenu
+    ? Object.keys(shapes).indexOf(contextMenu.shapeId)
+    : -1;
+  const contextMenuShapeCount = Object.keys(shapes).length;
+  const canBringForward =
+    contextMenuIndex !== -1 && contextMenuIndex < contextMenuShapeCount - 1;
+  const canSendBackward = contextMenuIndex > 0;
+
   const connectorPoints = useMemo(() => {
     if (!connectorSource || !connectorPointer) return null;
     const source = shapes[connectorSource];
@@ -303,6 +333,7 @@ export function Canvas() {
               onSelect={() => handleShapeClick(shape.id)}
               onDblClick={() => handleShapeDblClick(shape.id)}
               onChange={(updates) => updateShape(shape.id, updates)}
+              onContextMenu={(e) => handleShapeContextMenu(shape.id, e)}
             />
           ))}
           <CreationPreview shape={previewShape} connectorPoints={connectorPoints} />
@@ -314,6 +345,30 @@ export function Canvas() {
           shape={shapes[editingTextId] as TextShape}
           viewport={viewport}
           onClose={() => setEditingTextId(null)}
+        />
+      )}
+      {contextMenu && (
+        <ShapeContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          canBringForward={canBringForward}
+          canSendBackward={canSendBackward}
+          onBringToFront={() => {
+            bringToFront(contextMenu.shapeId);
+            setContextMenu(null);
+          }}
+          onBringForward={() => {
+            bringForward(contextMenu.shapeId);
+            setContextMenu(null);
+          }}
+          onSendBackward={() => {
+            sendBackward(contextMenu.shapeId);
+            setContextMenu(null);
+          }}
+          onSendToBack={() => {
+            sendToBack(contextMenu.shapeId);
+            setContextMenu(null);
+          }}
         />
       )}
     </div>
