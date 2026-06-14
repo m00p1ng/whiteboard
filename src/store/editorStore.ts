@@ -11,7 +11,7 @@ export type Tool =
   | 'text'
   | 'connector';
 
-interface Viewport {
+export interface Viewport {
   scale: number;
   offsetX: number;
   offsetY: number;
@@ -22,6 +22,8 @@ interface EditorState {
   tool: Tool;
   selectedId: string | null;
   viewport: Viewport;
+  showGrid: boolean;
+  setShowGrid: (value: boolean) => void;
   undoStack: Command[];
   redoStack: Command[];
   addShape: (shape: Shape) => void;
@@ -48,11 +50,31 @@ interface EditorState {
   reset: () => void;
 }
 
+const SHOW_GRID_KEY = 'whiteboard:showGrid';
+
+function readShowGrid(): boolean {
+  try {
+    const value = window.localStorage.getItem(SHOW_GRID_KEY);
+    return value === 'true' || value === null;
+  } catch {
+    return true;
+  }
+}
+
+function writeShowGrid(value: boolean): void {
+  try {
+    window.localStorage.setItem(SHOW_GRID_KEY, String(value));
+  } catch {
+    // Ignore storage errors.
+  }
+}
+
 export const useEditorStore = create<EditorState>((set, get) => ({
   shapes: {},
   tool: 'select',
   selectedId: null,
   viewport: { scale: 1, offsetX: 0, offsetY: 0 },
+  showGrid: readShowGrid(),
   undoStack: [],
   redoStack: [],
   addShape: (shape) => {
@@ -122,6 +144,10 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     }),
   setTool: (tool) => set({ tool }),
   setSelectedId: (selectedId) => set({ selectedId }),
+  setShowGrid: (value) => {
+    writeShowGrid(value);
+    set({ showGrid: value });
+  },
   setViewport: (updates) =>
     set((state) => ({ viewport: { ...state.viewport, ...updates } })),
   setShapes: (shapes) => set({ shapes, undoStack: [], redoStack: [] }),

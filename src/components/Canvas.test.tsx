@@ -76,6 +76,7 @@ vi.mock('react-konva', () => ({
   Layer: ({ children }: PropsWithChildren) => <>{children}</>,
   Transformer: () => <div data-testid="selection-transformer" />,
   Circle: () => <div data-testid="line-endpoint-handle" />,
+  Shape: () => <div data-testid="grid-background-shape" />,
 }));
 
 vi.mock('./ShapeRenderer', () => ({
@@ -230,6 +231,22 @@ function gesture(
   konvaMock.pointer = end;
   fireEvent.click(screen.getByRole('button', { name: 'pointer move' }));
 }
+
+describe('Canvas grid background', () => {
+  it('renders the grid background when showGrid is true', () => {
+    useEditorStore.setState({ showGrid: true });
+    render(<Canvas />);
+
+    expect(screen.getByTestId('grid-background-shape')).toBeInTheDocument();
+  });
+
+  it('hides the grid background when showGrid is false', () => {
+    useEditorStore.setState({ showGrid: false });
+    render(<Canvas />);
+
+    expect(screen.queryByTestId('grid-background-shape')).not.toBeInTheDocument();
+  });
+});
 
 describe('Canvas selected shape interaction', () => {
   it('keeps the selected shape draggable while a creation tool is active', () => {
