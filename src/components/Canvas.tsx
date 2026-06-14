@@ -20,6 +20,7 @@ export function Canvas() {
   const [connectorSource, setConnectorSource] = useState<string | null>(null);
   const [spacePressed, setSpacePressed] = useState(false);
   const [editingTextId, setEditingTextId] = useState<string | null>(null);
+  const [lineStart, setLineStart] = useState<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -53,6 +54,19 @@ export function Canvas() {
       addShape({ id, type: 'circle', x: pos.x, y: pos.y, radius: 40, fill: '#fff' });
     } else if (tool === 'text') {
       addShape({ id, type: 'text', x: pos.x, y: pos.y, text: 'Text', fontSize: 18 });
+    } else if (tool === 'line') {
+      if (!lineStart) {
+        setLineStart({ x: pos.x, y: pos.y });
+      } else {
+        addShape({
+          id: crypto.randomUUID(),
+          type: 'line',
+          x: 0,
+          y: 0,
+          points: [lineStart.x, lineStart.y, pos.x, pos.y],
+        });
+        setLineStart(null);
+      }
     }
   };
 
