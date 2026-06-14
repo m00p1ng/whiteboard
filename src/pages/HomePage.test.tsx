@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, fireEvent, within } from '@testing-library/react';
 import { HomePage } from './HomePage';
 import { useBoardStore } from '@/store/boardStore';
@@ -75,5 +75,33 @@ describe('HomePage', () => {
       'newer',
       'middle',
     ]);
+
+    expect(within(boardGrid).getAllByText(/Updated/).length).toBe(3);
+  });
+
+  it('shows relative update time for each board', () => {
+    vi.useFakeTimers();
+    try {
+      const now = Date.now();
+      vi.setSystemTime(now);
+
+      useBoardStore.setState({
+        boards: [
+          {
+            id: 'recent',
+            name: 'Recent board',
+            createdAt: now - 5 * 60 * 1000,
+            updatedAt: now - 5 * 60 * 1000,
+            shapes: {},
+          },
+        ],
+        currentBoardId: null,
+      });
+
+      render(<HomePage />);
+      expect(screen.getByText(/5 minutes ago/i)).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
