@@ -4,7 +4,7 @@ import {
   loadBoards,
   putBoard,
 } from '@/db/boardDb';
-import type { FlowchartEdge, FlowchartGraph, FlowchartNode } from '@/types/flowchart';
+import type { FlowchartEdge, FlowchartGraph, FlowchartNode, Viewport } from '@/types/flowchart';
 
 export interface Board {
   id: string;
@@ -13,6 +13,7 @@ export interface Board {
   updatedAt: number;
   nodes: Record<string, FlowchartNode>;
   edges: Record<string, FlowchartEdge>;
+  viewport?: Viewport;
 }
 
 interface BoardState {
@@ -23,7 +24,7 @@ interface BoardState {
   closeBoard: () => void;
   renameBoard: (id: string, name: string) => void;
   deleteBoard: (id: string) => void;
-  saveCurrentBoard: (graph: FlowchartGraph) => void;
+  saveCurrentBoard: (graph: FlowchartGraph & { viewport?: Viewport }) => void;
 }
 
 function ignorePersistenceError(promise: Promise<void>): void {

@@ -150,4 +150,17 @@ describe('boardStore', () => {
       name: 'Still visible',
     });
   });
+
+  it('saves the current viewport with the board', () => {
+    vi.spyOn(Date, 'now').mockReturnValueOnce(100).mockReturnValue(300);
+    useBoardStore.getState().createBoard('Diagram');
+    mockedPutBoard.mockClear();
+
+    const viewport = { scale: 1.5, offsetX: -200, offsetY: -100 };
+    useBoardStore.getState().saveCurrentBoard({ nodes: {}, edges: {}, viewport });
+
+    const board = useBoardStore.getState().boards[0];
+    expect(board.viewport).toEqual(viewport);
+    expect(mockedPutBoard).toHaveBeenCalledWith(board);
+  });
 });
