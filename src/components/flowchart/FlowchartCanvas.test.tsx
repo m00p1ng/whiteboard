@@ -8,6 +8,10 @@ import { useFlowchartStore } from '@/store/flowchartStore';
 const konvaMock = vi.hoisted(() => ({
   pointer: { x: 120, y: 80 },
 }));
+const componentMock = vi.hoisted(() => ({
+  edgeRendererProps: undefined as Record<string, unknown> | undefined,
+  edgeHandleProps: undefined as Record<string, unknown> | undefined,
+}));
 
 vi.mock('react-konva', () => ({
   Stage: forwardRef(
@@ -71,7 +75,23 @@ vi.mock('./NodeRenderer', () => ({
 }));
 
 vi.mock('./EdgeRenderer', () => ({
-  EdgeRenderer: () => null,
+  EdgeRenderer: (props: Record<string, unknown>) => {
+    componentMock.edgeRendererProps = props;
+    return (
+      <button
+        type="button"
+        data-testid="edge"
+        onClick={() => (props.onClick as (() => void) | undefined)?.()}
+      />
+    );
+  },
+}));
+
+vi.mock('./EdgeHandles', () => ({
+  EdgeHandles: (props: Record<string, unknown>) => {
+    componentMock.edgeHandleProps = props;
+    return <div data-testid="edge-handles" />;
+  },
 }));
 
 vi.mock('./PortHandles', () => ({
@@ -91,6 +111,9 @@ vi.mock('./LabelEditor', () => ({
 }));
 
 beforeEach(() => {
+  componentMock.edgeRendererProps = undefined;
+  componentMock.edgeHandleProps = undefined;
+  konvaMock.pointer = { x: 120, y: 80 };
   useFlowchartStore.setState({
     nodes: {},
     edges: {},
@@ -104,6 +127,53 @@ beforeEach(() => {
     redoStack: [],
   });
 });
+
+function seedEditableGraph() {
+  useFlowchartStore.setState({
+    nodes: {
+      a: {
+        id: 'a',
+        type: 'process',
+        x: 0,
+        y: 0,
+        width: 100,
+        height: 60,
+        style: {},
+      },
+      b: {
+        id: 'b',
+        type: 'process',
+        x: 200,
+        y: 150,
+        width: 100,
+        height: 60,
+        style: {},
+      },
+      c: {
+        id: 'c',
+        type: 'process',
+        x: 400,
+        y: 100,
+        width: 100,
+        height: 60,
+        style: {},
+      },
+    },
+    edges: {
+      e1: {
+        id: 'e1',
+        fromNodeId: 'a',
+        fromPort: 'right',
+        toNodeId: 'b',
+        toPort: 'left',
+        style: {},
+      },
+    },
+    selection: { type: 'edge', id: 'e1' },
+    undoStack: [],
+    redoStack: [],
+  });
+}
 
 describe('FlowchartCanvas', () => {
   it('renders the canvas', () => {
@@ -121,5 +191,76 @@ describe('FlowchartCanvas', () => {
 
     expect(Object.keys(useFlowchartStore.getState().nodes)).toHaveLength(1);
     expect(useFlowchartStore.getState().tool).toBe('select');
+  });
+
+  it('shows handles only for the selected edge', () => {
+    seedEditableGraph();
+
+    render(<FlowchartCanvas />);
+
+    expect(screen.getByTestId('edge-handles')).toBeInTheDocument();
+  });
+
+  it('commits one waypoint update after a bend preview', () => {
+    seedEditableGraph();
+    render(<FlowchartCanvas />);
+
+    act(() => {
+      (
+        componentMock.edgeHandleProps?.onWaypointPreview as (
+          index: number,
+          point: { x: number; y: number }
+        ) => void
+      )(0, { x: 150, y: 80 });
+    });
+    expect(componentMock.edgeRendererProps?.previewPoints).toBeDefined();
+
+    act(() => {
+      (
+        componentMock.edgeHandleProps?.onWaypointCommit as () => void
+      )();
+    });
+    expect(useFlowchartStore.getState().edges.e1.waypoints).toContainEqual({
+      x: 150,
+      y: 80,
+    });
+    expect(useFlowchartStore.getState().undoStack).toHaveLength(1);
+  });
+
+  it('cancels an endpoint drop outside a port', () => {
+    seedEditableGraph();
+    render(<FlowchartCanvas />);
+
+    act(() => {
+      (
+        componentMock.edgeHandleProps?.onEndpointCommit as (
+          endpoint: 'source' | 'target',
+          point: { x: number; y: number }
+        ) => void
+      )('target', { x: 1000, y: 1000 });
+    });
+
+    expect(useFlowchartStore.getState().edges.e1.toNodeId).toBe('b');
+    expect(useFlowchartStore.getState().undoStack).toHaveLength(0);
+  });
+
+  it('reconnects an endpoint dropped on a visible port', () => {
+    seedEditableGraph();
+    render(<FlowchartCanvas />);
+
+    act(() => {
+      (
+        componentMock.edgeHandleProps?.onEndpointCommit as (
+          endpoint: 'source' | 'target',
+          point: { x: number; y: number }
+        ) => void
+      )('target', { x: 450, y: 100 });
+    });
+
+    expect(useFlowchartStore.getState().edges.e1).toMatchObject({
+      toNodeId: 'c',
+      toPort: 'top',
+    });
+    expect(useFlowchartStore.getState().undoStack).toHaveLength(1);
   });
 });

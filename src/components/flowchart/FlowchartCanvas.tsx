@@ -1,10 +1,21 @@
 import { useEffect, useRef, useState } from 'react';
 import { Layer, Stage } from 'react-konva';
 import type Konva from 'konva';
-import type { FlowchartNode, FlowchartTool, PortId } from '@/types/flowchart';
+import type {
+  FlowchartEdge,
+  FlowchartNode,
+  FlowchartPoint,
+  FlowchartTool,
+  PortId,
+} from '@/types/flowchart';
 import { useFlowchartStore } from '@/store/flowchartStore';
 import { GridBackground } from '@/components/GridBackground';
 import { computeOrthogonalPath } from '@/utils/orthogonalRouter';
+import {
+  getManualWaypoints,
+  moveWaypoint,
+  offsetRouteSegment,
+} from '@/utils/edgeGeometry';
 import { getDefaultNodeSize, getPortPoint } from '@/utils/portGeometry';
 import { snapPoint, computeSmartGuides } from '@/utils/snapEngine';
 import { NodeRenderer } from './NodeRenderer';
@@ -12,6 +23,7 @@ import { EdgeRenderer } from './EdgeRenderer';
 import { PortHandles } from './PortHandles';
 import { DraftLayer } from './DraftLayer';
 import { LabelEditor } from './LabelEditor';
+import { EdgeHandles } from './EdgeHandles';
 
 const GRID_SIZE = 20;
 
@@ -37,6 +49,8 @@ export function FlowchartCanvas() {
     setViewport,
     setEditingNodeId,
     updateNode,
+    setEdgeWaypoints,
+    reconnectEdge,
   } = useFlowchartStore();
 
   const [draftNode, setDraftNode] = useState<FlowchartNode | null>(null);
@@ -47,6 +61,16 @@ export function FlowchartCanvas() {
   } | null>(null);
   const [panning, setPanning] = useState(false);
   const panStart = useRef({ x: 0, y: 0 });
+  const [edgePreview, setEdgePreview] = useState<{
+    edgeId: string;
+    points: number[];
+    waypoints: FlowchartPoint[];
+  } | null>(null);
+  const edgeEditBase = useRef<{
+    edgeId: string;
+    points: number[];
+    waypoints: FlowchartPoint[];
+  } | null>(null);
 
   useEffect(() => {
     function handleResize() {
@@ -274,6 +298,151 @@ export function FlowchartCanvas() {
 
   const selectedNodeId = selection?.type === 'node' ? selection.id : null;
   const selectedEdgeId = selection?.type === 'edge' ? selection.id : null;
+  const selectedEdge = selectedEdgeId ? edges[selectedEdgeId] : undefined;
+  const selectedEdgePoints = selectedEdge
+    ? getEdgePoints(selectedEdge, nodes)
+    : null;
+
+  useEffect(() => {
+    if (!selectedEdgeId || !edges[selectedEdgeId]) {
+      setEdgePreview(null);
+      edgeEditBase.current = null;
+    }
+  }, [edges, selectedEdgeId]);
+
+  function getEditBase() {
+    if (!selectedEdge || !selectedEdgePoints) return null;
+    if (edgeEditBase.current?.edgeId === selectedEdge.id) {
+      return edgeEditBase.current;
+    }
+    const base = {
+      edgeId: selectedEdge.id,
+      points: selectedEdgePoints,
+      waypoints:
+        selectedEdge.waypoints ?? getManualWaypoints(selectedEdgePoints),
+    };
+    edgeEditBase.current = base;
+    return base;
+  }
+
+  function previewWaypoints(waypoints: FlowchartPoint[]) {
+    if (!selectedEdge) return;
+    const source = nodes[selectedEdge.fromNodeId];
+    const target = nodes[selectedEdge.toNodeId];
+    if (!source || !target) return;
+    setEdgePreview({
+      edgeId: selectedEdge.id,
+      waypoints,
+      points: computeOrthogonalPath(
+        source,
+        selectedEdge.fromPort,
+        target,
+        selectedEdge.toPort,
+        8,
+        waypoints
+      ),
+    });
+  }
+
+  function handleWaypointPreview(index: number, point: FlowchartPoint) {
+    const base = getEditBase();
+    if (!base) return;
+    previewWaypoints(moveWaypoint(base.waypoints, index, point));
+  }
+
+  function handleSegmentPreview(
+    segmentIndex: number,
+    delta: FlowchartPoint
+  ) {
+    const base = getEditBase();
+    if (!base) return;
+    previewWaypoints(offsetRouteSegment(base.points, segmentIndex, delta));
+  }
+
+  function commitEdgeWaypoints() {
+    if (edgePreview && edgePreview.edgeId === selectedEdgeId) {
+      setEdgeWaypoints(edgePreview.edgeId, edgePreview.waypoints);
+    }
+    setEdgePreview(null);
+    edgeEditBase.current = null;
+  }
+
+  function handleEndpointPreview(
+    endpoint: 'source' | 'target',
+    point: FlowchartPoint
+  ) {
+    if (!selectedEdge) return;
+    const source = nodes[selectedEdge.fromNodeId];
+    const target = nodes[selectedEdge.toNodeId];
+    if (!source || !target) return;
+    const waypoints =
+      selectedEdge.waypoints ??
+      edgeEditBase.current?.waypoints ??
+      getManualWaypoints(selectedEdgePoints ?? []);
+    const pointerNode: FlowchartNode = {
+      id: 'edge-endpoint-preview',
+      type: 'process',
+      x: point.x,
+      y: point.y,
+      width: 0,
+      height: 0,
+      style: {},
+    };
+    const points =
+      endpoint === 'source'
+        ? computeOrthogonalPath(
+            pointerNode,
+            'right',
+            target,
+            selectedEdge.toPort,
+            8,
+            waypoints
+          )
+        : computeOrthogonalPath(
+            source,
+            selectedEdge.fromPort,
+            pointerNode,
+            'left',
+            8,
+            waypoints
+          );
+    setEdgePreview({ edgeId: selectedEdge.id, points, waypoints });
+  }
+
+  function portAtPoint(
+    point: FlowchartPoint,
+    radius = 10 / viewport.scale
+  ): { nodeId: string; port: PortId } | null {
+    const ports: PortId[] = ['top', 'right', 'bottom', 'left'];
+    let match: { nodeId: string; port: PortId } | null = null;
+    let distance = Infinity;
+    for (const node of Object.values(nodes)) {
+      for (const port of ports) {
+        const portPoint = getPortPoint(node, port);
+        const nextDistance = Math.hypot(
+          point.x - portPoint.x,
+          point.y - portPoint.y
+        );
+        if (nextDistance <= radius && nextDistance < distance) {
+          match = { nodeId: node.id, port };
+          distance = nextDistance;
+        }
+      }
+    }
+    return match;
+  }
+
+  function handleEndpointCommit(
+    endpoint: 'source' | 'target',
+    point: FlowchartPoint
+  ) {
+    const target = portAtPoint(point);
+    if (selectedEdge && target) {
+      reconnectEdge(selectedEdge.id, endpoint, target.nodeId, target.port);
+    }
+    setEdgePreview(null);
+    edgeEditBase.current = null;
+  }
 
   return (
     <div ref={containerRef} className="absolute inset-0">
@@ -306,6 +475,11 @@ export function FlowchartCanvas() {
               edge={edge}
               nodes={nodes}
               isSelected={edge.id === selectedEdgeId}
+              previewPoints={
+                edgePreview?.edgeId === edge.id
+                  ? edgePreview.points
+                  : undefined
+              }
               onClick={() => setSelection({ type: 'edge', id: edge.id })}
             />
           ))}
@@ -330,6 +504,27 @@ export function FlowchartCanvas() {
               onDragStart={(port) => handlePortDragStart(selectedNodeId, port)}
             />
           )}
+          {selectedEdge && selectedEdgePoints && (
+            <EdgeHandles
+              points={
+                edgePreview?.edgeId === selectedEdge.id
+                  ? edgePreview.points
+                  : selectedEdgePoints
+              }
+              waypoints={
+                edgePreview?.edgeId === selectedEdge.id
+                  ? edgePreview.waypoints
+                  : selectedEdge.waypoints ??
+                    getManualWaypoints(selectedEdgePoints)
+              }
+              onWaypointPreview={handleWaypointPreview}
+              onWaypointCommit={commitEdgeWaypoints}
+              onSegmentPreview={handleSegmentPreview}
+              onSegmentCommit={commitEdgeWaypoints}
+              onEndpointPreview={handleEndpointPreview}
+              onEndpointCommit={handleEndpointCommit}
+            />
+          )}
           <DraftLayer draftNode={draftNode} draftEdgePoints={draftEdge?.points ?? null} />
         </Layer>
       </Stage>
@@ -351,4 +546,21 @@ export function FlowchartCanvas() {
 
 function isNodeTool(tool: FlowchartTool): tool is FlowchartNode['type'] {
   return tool !== 'select' && tool !== 'connector';
+}
+
+function getEdgePoints(
+  edge: FlowchartEdge,
+  nodes: Record<string, FlowchartNode>
+): number[] | null {
+  const source = nodes[edge.fromNodeId];
+  const target = nodes[edge.toNodeId];
+  if (!source || !target) return null;
+  return computeOrthogonalPath(
+    source,
+    edge.fromPort,
+    target,
+    edge.toPort,
+    8,
+    edge.waypoints
+  );
 }
