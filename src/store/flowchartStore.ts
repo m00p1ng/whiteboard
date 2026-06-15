@@ -5,6 +5,7 @@ import {
   createMoveNodeCommand,
   createRemoveEdgeCommand,
   createRemoveNodeCommand,
+  createReorderNodesCommand,
   createUpdateEdgeCommand,
   createUpdateNodeCommand,
 } from '@/utils/flowchartCommands';
@@ -50,6 +51,11 @@ interface FlowchartActions {
     toPort: PortId
   ) => void;
   removeEdge: (id: string) => void;
+  bringNodeToFront: (id: string) => void;
+  sendNodeToBack: (id: string) => void;
+  bringNodeForward: (id: string) => void;
+  sendNodeBackward: (id: string) => void;
+  duplicateNode: (id: string) => void;
   updateEdge: (id: string, updates: Partial<FlowchartEdge>) => void;
   updateEdgeStyle: (id: string, style: Partial<FlowchartEdge['style']>) => void;
   setEdgeWaypoints: (id: string, waypoints: FlowchartPoint[]) => void;
@@ -245,6 +251,67 @@ export const useFlowchartStore = create<FlowchartState & FlowchartActions>(
     removeEdge: (id) => {
       get().execute(createRemoveEdgeCommand(id, get()));
       set({ selection: null });
+    },
+
+    bringNodeToFront: (id) => {
+      const { nodes, execute } = get();
+      const node = nodes[id];
+      if (!node) return;
+      const order = Object.keys(nodes);
+      const idx = order.indexOf(id);
+      if (idx === -1 || idx === order.length - 1) return;
+      const nextOrder = [...order.slice(0, idx), ...order.slice(idx + 1), id];
+      execute(createReorderNodesCommand(order, nextOrder));
+    },
+
+    sendNodeToBack: (id) => {
+      const { nodes, execute } = get();
+      const node = nodes[id];
+      if (!node) return;
+      const order = Object.keys(nodes);
+      const idx = order.indexOf(id);
+      if (idx <= 0) return;
+      const nextOrder = [id, ...order.slice(0, idx), ...order.slice(idx + 1)];
+      execute(createReorderNodesCommand(order, nextOrder));
+    },
+
+    bringNodeForward: (id) => {
+      const { nodes, execute } = get();
+      const node = nodes[id];
+      if (!node) return;
+      const order = Object.keys(nodes);
+      const idx = order.indexOf(id);
+      if (idx === -1 || idx === order.length - 1) return;
+      const nextOrder = [...order];
+      [nextOrder[idx], nextOrder[idx + 1]] = [nextOrder[idx + 1], nextOrder[idx]];
+      execute(createReorderNodesCommand(order, nextOrder));
+    },
+
+    sendNodeBackward: (id) => {
+      const { nodes, execute } = get();
+      const node = nodes[id];
+      if (!node) return;
+      const order = Object.keys(nodes);
+      const idx = order.indexOf(id);
+      if (idx <= 0) return;
+      const nextOrder = [...order];
+      [nextOrder[idx], nextOrder[idx - 1]] = [nextOrder[idx - 1], nextOrder[idx]];
+      execute(createReorderNodesCommand(order, nextOrder));
+    },
+
+    duplicateNode: (id) => {
+      const { nodes, execute, setSelection } = get();
+      const node = nodes[id];
+      if (!node) return;
+      const copy: FlowchartNode = {
+        ...node,
+        id: crypto.randomUUID(),
+        x: node.x + 20,
+        y: node.y + 20,
+      };
+      execute(createAddNodeCommand(copy));
+      setSelection({ type: 'node', id: copy.id });
+      set({ tool: 'select' });
     },
 
     updateEdge: (id, updates) => {

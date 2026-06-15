@@ -211,4 +211,99 @@ describe('flowchartStore', () => {
     expect(useFlowchartStore.getState().edges.e1.toNodeId).toBe('b');
     expect(useFlowchartStore.getState().undoStack).toHaveLength(before);
   });
+
+  it('brings a node to front and sends it to back', () => {
+    useFlowchartStore.setState({
+      nodes: { a: nodeA, b: nodeB, c: nodeC },
+      edges: {},
+      undoStack: [],
+      redoStack: [],
+    });
+
+    useFlowchartStore.getState().bringNodeToFront('a');
+    expect(Object.keys(useFlowchartStore.getState().nodes)).toEqual([
+      'b',
+      'c',
+      'a',
+    ]);
+
+    useFlowchartStore.getState().sendNodeToBack('a');
+    expect(Object.keys(useFlowchartStore.getState().nodes)).toEqual([
+      'a',
+      'b',
+      'c',
+    ]);
+  });
+
+  it('brings a node forward and sends it backward', () => {
+    useFlowchartStore.setState({
+      nodes: { a: nodeA, b: nodeB, c: nodeC },
+      edges: {},
+      undoStack: [],
+      redoStack: [],
+    });
+
+    useFlowchartStore.getState().bringNodeForward('a');
+    expect(Object.keys(useFlowchartStore.getState().nodes)).toEqual([
+      'b',
+      'a',
+      'c',
+    ]);
+
+    useFlowchartStore.getState().sendNodeBackward('c');
+    expect(Object.keys(useFlowchartStore.getState().nodes)).toEqual([
+      'b',
+      'c',
+      'a',
+    ]);
+  });
+
+  it('does not push boundary ordering actions to undo stack', () => {
+    useFlowchartStore.setState({
+      nodes: { a: nodeA, b: nodeB },
+      edges: {},
+      undoStack: [],
+      redoStack: [],
+    });
+
+    useFlowchartStore.getState().bringNodeForward('b');
+    useFlowchartStore.getState().sendNodeBackward('a');
+    expect(useFlowchartStore.getState().undoStack).toHaveLength(0);
+  });
+
+  it('duplicates a node with an offset and selects it', () => {
+    useFlowchartStore.setState({
+      nodes: { a: { ...nodeA, style: { fill: '#fff' } } },
+      edges: {},
+      undoStack: [],
+      redoStack: [],
+    });
+
+    useFlowchartStore.getState().duplicateNode('a');
+    const state = useFlowchartStore.getState();
+    const copy = Object.values(state.nodes).find((n) => n.id !== 'a');
+    expect(copy).toBeDefined();
+    expect(copy?.type).toBe(nodeA.type);
+    expect(copy?.id).not.toBe('a');
+    expect(copy?.x).toBe(nodeA.x + 20);
+    expect(copy?.y).toBe(nodeA.y + 20);
+    expect(copy?.style).toEqual({ fill: '#fff' });
+    expect(state.selection).toEqual({ type: 'node', id: copy!.id });
+    expect(state.tool).toBe('select');
+  });
+
+  it('undoes duplicate', () => {
+    useFlowchartStore.setState({
+      nodes: { a: nodeA },
+      edges: {},
+      undoStack: [],
+      redoStack: [],
+    });
+
+    useFlowchartStore.getState().duplicateNode('a');
+    const copyId = useFlowchartStore.getState().selection!.id;
+
+    useFlowchartStore.getState().undo();
+    expect(useFlowchartStore.getState().nodes[copyId]).toBeUndefined();
+  });
 });
