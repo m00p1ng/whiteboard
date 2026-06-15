@@ -4,14 +4,15 @@ import {
   loadBoards,
   putBoard,
 } from '@/db/boardDb';
-import type { Shape } from '@/types/shape';
+import type { FlowchartEdge, FlowchartGraph, FlowchartNode } from '@/types/flowchart';
 
 export interface Board {
   id: string;
   name: string;
   createdAt: number;
   updatedAt: number;
-  shapes: Record<string, Shape>;
+  nodes: Record<string, FlowchartNode>;
+  edges: Record<string, FlowchartEdge>;
 }
 
 interface BoardState {
@@ -22,53 +23,24 @@ interface BoardState {
   closeBoard: () => void;
   renameBoard: (id: string, name: string) => void;
   deleteBoard: (id: string) => void;
-  saveCurrentBoard: (shapes: Record<string, Shape>) => void;
-}
-
-const DEFAULT_CIRCLE_RADIUS = 40;
-
-function validRadius(value: unknown): value is number {
-  return typeof value === 'number' && Number.isFinite(value) && value > 0;
-}
-
-function normalizeShape(shape: unknown): Shape {
-  const candidate = shape as Shape & {
-    radius?: unknown;
-    radiusX?: unknown;
-    radiusY?: unknown;
-  };
-
-  if (candidate?.type !== 'circle') return candidate;
-
-  const legacyRadius = validRadius(candidate.radius)
-    ? candidate.radius
-    : DEFAULT_CIRCLE_RADIUS;
-  const radiusX = validRadius(candidate.radiusX)
-    ? candidate.radiusX
-    : legacyRadius;
-  const radiusY = validRadius(candidate.radiusY)
-    ? candidate.radiusY
-    : legacyRadius;
-  const normalized = { ...candidate, radiusX, radiusY };
-  delete normalized.radius;
-
-  return normalized as Shape;
-}
-
-function normalizeBoard(board: Board): Board {
-  return {
-    ...board,
-    shapes: Object.fromEntries(
-      Object.entries(board.shapes ?? {}).map(([id, shape]) => [
-        id,
-        normalizeShape(shape),
-      ])
-    ),
-  };
+  saveCurrentBoard: (graph: FlowchartGraph) => void;
 }
 
 function ignorePersistenceError(promise: Promise<void>): void {
   void promise.catch(() => undefined);
+}
+
+function normalizeBoard(board: Board & { shapes?: unknown }): Board {
+  const hasLegacyShapes =
+    board.shapes &&
+    typeof board.shapes === 'object' &&
+    Object.keys(board.shapes as Record<string, unknown>).length > 0;
+
+  return {
+    ...board,
+    nodes: hasLegacyShapes ? {} : (board.nodes ?? {}),
+    edges: hasLegacyShapes ? {} : (board.edges ?? {}),
+  };
 }
 
 export async function initBoardStore(): Promise<void> {
@@ -86,7 +58,8 @@ export const useBoardStore = create<BoardState>((set, get) => ({
       name: name?.trim() || 'Untitled board',
       createdAt: Date.now(),
       updatedAt: Date.now(),
-      shapes: {},
+      nodes: {},
+      edges: {},
     };
     set({ boards: [...get().boards, board], currentBoardId: id });
     ignorePersistenceError(putBoard(board));
@@ -101,15 +74,9 @@ export const useBoardStore = create<BoardState>((set, get) => ({
   renameBoard: (id, name) => {
     const trimmed = name.trim();
     if (!trimmed) return;
-
     const existing = get().boards.find((board) => board.id === id);
     if (!existing) return;
-
-    const updatedBoard = {
-      ...existing,
-      name: trimmed,
-      updatedAt: Date.now(),
-    };
+    const updatedBoard = { ...existing, name: trimmed, updatedAt: Date.now() };
     set({
       boards: get().boards.map((board) =>
         board.id === id ? updatedBoard : board
@@ -118,30 +85,26 @@ export const useBoardStore = create<BoardState>((set, get) => ({
     ignorePersistenceError(putBoard(updatedBoard));
   },
   deleteBoard: (id) => {
-    const updates: Partial<BoardState> = {
+    const current = get().currentBoardId;
+    set({
       boards: get().boards.filter((board) => board.id !== id),
-    };
-    if (get().currentBoardId === id) {
-      updates.currentBoardId = null;
-    }
-    set(updates);
+      currentBoardId: current === id ? null : current,
+    });
     ignorePersistenceError(deleteBoardRecord(id));
   },
-  saveCurrentBoard: (shapes) => {
-    const { currentBoardId, boards } = get();
-    if (!currentBoardId) return;
-
-    const existing = boards.find((board) => board.id === currentBoardId);
+  saveCurrentBoard: (graph) => {
+    const id = get().currentBoardId;
+    if (!id) return;
+    const existing = get().boards.find((board) => board.id === id);
     if (!existing) return;
-
     const updatedBoard = {
       ...existing,
-      shapes,
+      ...graph,
       updatedAt: Date.now(),
     };
     set({
-      boards: boards.map((board) =>
-        board.id === currentBoardId ? updatedBoard : board
+      boards: get().boards.map((board) =>
+        board.id === id ? updatedBoard : board
       ),
     });
     ignorePersistenceError(putBoard(updatedBoard));

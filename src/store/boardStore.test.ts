@@ -5,6 +5,7 @@ import {
   putBoard,
 } from '@/db/boardDb';
 import { initBoardStore, useBoardStore } from './boardStore';
+import type { FlowchartNode } from '@/types/flowchart';
 
 vi.mock('@/db/boardDb', () => ({
   loadBoards: vi.fn(),
@@ -32,7 +33,8 @@ describe('boardStore', () => {
         name: 'Existing',
         createdAt: 1,
         updatedAt: 2,
-        shapes: {},
+        nodes: {},
+        edges: {},
       },
     ]);
 
@@ -44,34 +46,22 @@ describe('boardStore', () => {
     });
   });
 
-  it('normalizes legacy circle radii during hydration', async () => {
+  it('clears nodes and edges for legacy boards with shapes', async () => {
     mockedLoadBoards.mockResolvedValue([
       {
         id: 'legacy-board',
         name: 'Legacy',
         createdAt: 1,
         updatedAt: 2,
-        shapes: {
-          circle: {
-            id: 'circle',
-            type: 'circle',
-            x: 20,
-            y: 30,
-            radius: 25,
-          },
-        },
+        shapes: { r1: { id: 'r1', type: 'rect' } },
       } as never,
     ]);
 
     await initBoardStore();
 
-    expect(useBoardStore.getState().boards[0].shapes.circle).toMatchObject({
-      radiusX: 25,
-      radiusY: 25,
-    });
-    expect(useBoardStore.getState().boards[0].shapes.circle).not.toHaveProperty(
-      'radius'
-    );
+    const board = useBoardStore.getState().boards[0];
+    expect(board.nodes).toEqual({});
+    expect(board.edges).toEqual({});
   });
 
   it('creates a board and writes only that board', () => {
@@ -81,7 +71,8 @@ describe('boardStore', () => {
     expect(board).toMatchObject({
       id,
       name: 'My board',
-      shapes: {},
+      nodes: {},
+      edges: {},
     });
     expect(useBoardStore.getState().currentBoardId).toBe(id);
     expect(mockedPutBoard).toHaveBeenCalledWith(board);
@@ -117,29 +108,29 @@ describe('boardStore', () => {
     expect(mockedDeleteBoard).toHaveBeenCalledWith(id);
   });
 
-  it('saves only the active board with its new shapes and timestamp', () => {
+  it('saves only the active board with its new graph and timestamp', () => {
     vi.spyOn(Date, 'now').mockReturnValueOnce(100).mockReturnValue(300);
     const id = useBoardStore.getState().createBoard('Diagram');
     mockedPutBoard.mockClear();
 
-    useBoardStore.getState().saveCurrentBoard({
-      rect: {
-        id: 'rect',
-        type: 'rect',
-        x: 10,
-        y: 20,
-        width: 100,
-        height: 60,
-      },
-    });
+    const node: FlowchartNode = {
+      id: 'n1',
+      type: 'process',
+      x: 10,
+      y: 20,
+      width: 100,
+      height: 60,
+      style: {},
+    };
+    useBoardStore.getState().saveCurrentBoard({ nodes: { n1: node }, edges: {} });
 
     const board = useBoardStore.getState().boards[0];
     expect(board).toMatchObject({
       id,
       updatedAt: 300,
-      shapes: {
-        rect: {
-          type: 'rect',
+      nodes: {
+        n1: {
+          type: 'process',
           x: 10,
           y: 20,
         },
