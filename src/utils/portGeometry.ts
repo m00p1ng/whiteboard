@@ -58,6 +58,21 @@ export function getPortDirection(port: PortId): Point {
   }
 }
 
+export function getNearestPort(node: FlowchartNode, point: Point): PortId {
+  const ports: PortId[] = ['top', 'right', 'bottom', 'left'];
+  let best: PortId = 'top';
+  let bestDist = Infinity;
+  for (const port of ports) {
+    const p = getPortPoint(node, port);
+    const dist = Math.hypot(p.x - point.x, p.y - point.y);
+    if (dist < bestDist) {
+      bestDist = dist;
+      best = port;
+    }
+  }
+  return best;
+}
+
 export function getNodeBounds(node: FlowchartNode): Bounds {
   return {
     x: node.x,

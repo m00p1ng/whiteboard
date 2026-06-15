@@ -6,8 +6,10 @@ interface NodeRendererProps {
   node: FlowchartNode;
   isSelected?: boolean;
   interactive?: boolean;
+  draggable?: boolean;
   onClick?: () => void;
   onDoubleClick?: () => void;
+  onMouseDown?: () => void;
   onDragStart?: () => void;
   onDragMove?: (x: number, y: number) => void;
   onDragEnd?: (x: number, y: number) => void;
@@ -17,8 +19,10 @@ export function NodeRenderer({
   node,
   isSelected,
   interactive = true,
+  draggable = interactive,
   onClick,
   onDoubleClick,
+  onMouseDown,
   onDragStart,
   onDragMove,
   onDragEnd,
@@ -35,7 +39,7 @@ export function NodeRenderer({
     <Group
       x={x}
       y={y}
-      draggable={interactive}
+      draggable={draggable}
       listening={interactive}
       onClick={(event) => {
         event.cancelBubble = true;
@@ -48,6 +52,10 @@ export function NodeRenderer({
       onDblClick={(event) => {
         event.cancelBubble = true;
         onDoubleClick?.();
+      }}
+      onMouseDown={(event) => {
+        event.cancelBubble = true;
+        onMouseDown?.();
       }}
       onDragStart={onDragStart}
       onDragMove={(event) => {

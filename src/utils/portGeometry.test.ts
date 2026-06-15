@@ -4,6 +4,7 @@ import {
   getPortDirection,
   getDefaultNodeSize,
   getNodeBounds,
+  getNearestPort,
 } from './portGeometry';
 import type { FlowchartNode } from '@/types/flowchart';
 
@@ -45,5 +46,12 @@ describe('portGeometry', () => {
       x2: 240,
       y2: 130,
     });
+  });
+
+  it('returns the nearest port to a point', () => {
+    expect(getNearestPort(node, { x: 170, y: 40 })).toBe('top');
+    expect(getNearestPort(node, { x: 250, y: 90 })).toBe('right');
+    expect(getNearestPort(node, { x: 170, y: 140 })).toBe('bottom');
+    expect(getNearestPort(node, { x: 90, y: 90 })).toBe('left');
   });
 });

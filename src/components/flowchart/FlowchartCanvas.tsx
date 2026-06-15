@@ -16,7 +16,7 @@ import {
   moveWaypoint,
   offsetRouteSegment,
 } from '@/utils/edgeGeometry';
-import { getDefaultNodeSize, getPortPoint } from '@/utils/portGeometry';
+import { getDefaultNodeSize, getNearestPort, getPortPoint } from '@/utils/portGeometry';
 import { snapPoint, computeSmartGuides } from '@/utils/snapEngine';
 import { NodeRenderer } from './NodeRenderer';
 import { EdgeRenderer } from './EdgeRenderer';
@@ -113,21 +113,6 @@ export function FlowchartCanvas() {
     return null;
   }
 
-  function closestPort(node: FlowchartNode, point: { x: number; y: number }): PortId {
-    const ports: PortId[] = ['top', 'right', 'bottom', 'left'];
-    let best: PortId = 'top';
-    let bestDist = Infinity;
-    for (const port of ports) {
-      const p = getPortPoint(node, port);
-      const dist = Math.hypot(p.x - point.x, p.y - point.y);
-      if (dist < bestDist) {
-        bestDist = dist;
-        best = port;
-      }
-    }
-    return best;
-  }
-
   function handleMouseMove() {
     const point = getPointerPosition();
     if (!point) return;
@@ -202,7 +187,7 @@ export function FlowchartCanvas() {
       if (point) {
         const target = nodeAtPoint(point, draftEdge.fromNodeId);
         if (target) {
-          const toPort = closestPort(target, point);
+          const toPort = getNearestPort(target, point);
           addEdge(draftEdge.fromNodeId, draftEdge.fromPort, target.id, toPort);
         }
       }
@@ -486,8 +471,19 @@ export function FlowchartCanvas() {
               key={node.id}
               node={node}
               isSelected={node.id === selectedNodeId}
+              draggable={tool === 'select'}
               onClick={() => setSelection({ type: 'node', id: node.id })}
               onDoubleClick={() => setEditingNodeId(node.id)}
+              onMouseDown={
+                tool === 'connector'
+                  ? () => {
+                      const point = getPointerPosition();
+                      if (!point) return;
+                      const port = getNearestPort(node, point);
+                      handlePortDragStart(node.id, port);
+                    }
+                  : undefined
+              }
               onDragMove={(x, y) => handleNodeDragMove(node.id, x, y)}
               onDragEnd={(x, y) => handleNodeDragEnd(node.id, x, y)}
             />

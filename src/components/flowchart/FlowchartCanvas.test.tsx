@@ -4,6 +4,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { FlowchartCanvas } from './FlowchartCanvas';
 import { useFlowchartStore } from '@/store/flowchartStore';
+import type { FlowchartNode } from '@/types/flowchart';
 
 const konvaMock = vi.hoisted(() => ({
   pointer: { x: 120, y: 80 },
@@ -71,7 +72,19 @@ vi.mock('react-konva', () => ({
 }));
 
 vi.mock('./NodeRenderer', () => ({
-  NodeRenderer: () => null,
+  NodeRenderer: ({
+    node,
+    onMouseDown,
+  }: {
+    node: FlowchartNode;
+    onMouseDown?: () => void;
+  }) => (
+    <button
+      type="button"
+      data-testid={`node-${node.id}`}
+      onMouseDown={onMouseDown}
+    />
+  ),
 }));
 
 vi.mock('./EdgeRenderer', () => ({
@@ -262,5 +275,100 @@ describe('FlowchartCanvas', () => {
       toPort: 'top',
     });
     expect(useFlowchartStore.getState().undoStack).toHaveLength(1);
+  });
+
+  it('creates a connector by dragging from one node body to another', () => {
+    useFlowchartStore.setState({
+      nodes: {
+        a: {
+          id: 'a',
+          type: 'process',
+          x: 0,
+          y: 0,
+          width: 100,
+          height: 60,
+          style: {},
+        },
+        b: {
+          id: 'b',
+          type: 'process',
+          x: 200,
+          y: 150,
+          width: 100,
+          height: 60,
+          style: {},
+        },
+      },
+      edges: {},
+      selection: null,
+      tool: 'connector',
+      viewport: { scale: 1, offsetX: 0, offsetY: 0 },
+      showGrid: true,
+      snap: true,
+      editingNodeId: null,
+      undoStack: [],
+      redoStack: [],
+    });
+
+    render(<FlowchartCanvas />);
+
+    konvaMock.pointer = { x: 95, y: 30 };
+    fireEvent.mouseDown(screen.getByTestId('node-a'));
+
+    konvaMock.pointer = { x: 205, y: 180 };
+    fireEvent.click(screen.getByRole('button', { name: 'mouse up' }));
+
+    const edges = Object.values(useFlowchartStore.getState().edges);
+    expect(edges).toHaveLength(1);
+    expect(edges[0]).toMatchObject({
+      fromNodeId: 'a',
+      fromPort: 'right',
+      toNodeId: 'b',
+      toPort: 'left',
+    });
+  });
+
+  it('cancels body-drag connector creation when releasing on empty canvas', () => {
+    useFlowchartStore.setState({
+      nodes: {
+        a: {
+          id: 'a',
+          type: 'process',
+          x: 0,
+          y: 0,
+          width: 100,
+          height: 60,
+          style: {},
+        },
+        b: {
+          id: 'b',
+          type: 'process',
+          x: 200,
+          y: 150,
+          width: 100,
+          height: 60,
+          style: {},
+        },
+      },
+      edges: {},
+      selection: null,
+      tool: 'connector',
+      viewport: { scale: 1, offsetX: 0, offsetY: 0 },
+      showGrid: true,
+      snap: true,
+      editingNodeId: null,
+      undoStack: [],
+      redoStack: [],
+    });
+
+    render(<FlowchartCanvas />);
+
+    konvaMock.pointer = { x: 95, y: 30 };
+    fireEvent.mouseDown(screen.getByTestId('node-a'));
+
+    konvaMock.pointer = { x: 1000, y: 1000 };
+    fireEvent.click(screen.getByRole('button', { name: 'mouse up' }));
+
+    expect(Object.values(useFlowchartStore.getState().edges)).toHaveLength(0);
   });
 });
