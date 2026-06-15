@@ -1,8 +1,7 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { render } from '@testing-library/react';
 import { Minimap } from './Minimap';
 import { useFlowchartStore } from '@/store/flowchartStore';
-import { vi, beforeEach } from 'vitest';
 
 beforeEach(() => {
   useFlowchartStore.setState({

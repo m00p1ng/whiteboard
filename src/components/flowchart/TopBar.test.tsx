@@ -1,8 +1,7 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { TopBar } from './TopBar';
 import { useFlowchartStore } from '@/store/flowchartStore';
-import { vi, beforeEach } from 'vitest';
 
 beforeEach(() => {
   useFlowchartStore.setState({

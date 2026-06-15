@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { FlowchartCanvas } from '@/components/flowchart/FlowchartCanvas';
 import { LeftToolbar } from '@/components/flowchart/LeftToolbar';
 import { Minimap } from '@/components/flowchart/Minimap';
@@ -15,7 +15,14 @@ export function BoardPage() {
     state.boards.find((board) => board.id === currentBoardId)
   );
   const saveCurrentBoard = useBoardStore((state) => state.saveCurrentBoard);
-  const [legacyWarning, setLegacyWarning] = useState(false);
+
+  const legacyShapes = currentBoard
+    ? (currentBoard as unknown as { shapes?: Record<string, unknown> }).shapes
+    : undefined;
+  const legacyWarning = !!(
+    legacyShapes &&
+    Object.keys(legacyShapes).length > 0
+  );
 
   useEffect(() => {
     const board = useBoardStore
@@ -29,11 +36,6 @@ export function BoardPage() {
       nodes: board.nodes,
       edges: board.edges,
     });
-
-    const legacyShapes = (board as unknown as { shapes?: Record<string, unknown> }).shapes;
-    if (legacyShapes && Object.keys(legacyShapes).length > 0) {
-      setLegacyWarning(true);
-    }
 
     return useFlowchartStore.subscribe((state, previousState) => {
       if (

@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it } from 'vitest';
 import { render } from '@testing-library/react';
 import { Stage, Layer } from 'react-konva';
 import { DraftLayer } from './DraftLayer';

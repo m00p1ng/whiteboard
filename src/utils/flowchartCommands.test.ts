@@ -5,7 +5,7 @@ import {
   createMoveNodeCommand,
   createAddEdgeCommand,
 } from './flowchartCommands';
-import type { FlowchartEdge, FlowchartNode } from '@/types/flowchart';
+import type { FlowchartEdge, FlowchartGraph, FlowchartNode } from '@/types/flowchart';
 
 describe('flowchartCommands', () => {
   const node: FlowchartNode = {
@@ -20,7 +20,7 @@ describe('flowchartCommands', () => {
 
   it('adds and removes a node', () => {
     const cmd = createAddNodeCommand(node);
-    const state = { nodes: {}, edges: {} };
+    const state: FlowchartGraph = { nodes: {}, edges: {} };
     cmd.do(state);
     expect(state.nodes['n1']).toBeDefined();
     cmd.undo(state);
@@ -38,7 +38,7 @@ describe('flowchartCommands', () => {
       toPort: 'left',
       style: {},
     };
-    const state = { nodes: { a, b }, edges: { e1: edge } };
+    const state: FlowchartGraph = { nodes: { a, b }, edges: { e1: edge } };
     const cmd = createRemoveNodeCommand('a', state);
     cmd.do(state);
     expect(state.nodes['a']).toBeUndefined();
@@ -50,7 +50,7 @@ describe('flowchartCommands', () => {
 
   it('moves a node and undoes the move', () => {
     const cmd = createMoveNodeCommand('n1', { x: 0, y: 0 }, { x: 50, y: 80 });
-    const state = { nodes: { n1: node }, edges: {} };
+    const state: FlowchartGraph = { nodes: { n1: node }, edges: {} };
     cmd.do(state);
     expect(state.nodes['n1'].x).toBe(50);
     expect(state.nodes['n1'].y).toBe(80);
@@ -69,7 +69,7 @@ describe('flowchartCommands', () => {
       style: {},
     };
     const cmd = createAddEdgeCommand(edge);
-    const state = { nodes: {}, edges: {} };
+    const state: FlowchartGraph = { nodes: {}, edges: {} };
     cmd.do(state);
     expect(state.edges['e1']).toBeDefined();
     cmd.undo(state);

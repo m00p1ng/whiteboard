@@ -25,7 +25,7 @@ export function getGridColors() {
   }
   return {
     minor: '#e2e8f0',
-    major: '#e2e8f0',
+    major: '#cbd5e1',
   };
 }
 
@@ -93,7 +93,7 @@ export function drawGrid(
     context.lineTo(worldMaxX, y);
   }
   context.strokeStyle = colors.minor;
-  context.lineWidth = 0.5 / scale;
+  context.lineWidth = 1 / scale;
   context.stroke();
 
   context.beginPath();
@@ -111,6 +111,6 @@ export function drawGrid(
     context.lineTo(worldMaxX, y);
   }
   context.strokeStyle = colors.major;
-  context.lineWidth = 1 / scale;
+  context.lineWidth = 1.5 / scale;
   context.stroke();
 }

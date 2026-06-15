@@ -1,7 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { renderHook } from '@testing-library/react';
 import { useFlowchartHotkeys } from './useFlowchartHotkeys';
 import { useFlowchartStore } from '@/store/flowchartStore';
+import type { FlowchartNode } from '@/types/flowchart';
 
 function pressKey(key: string, meta = false, shift = false) {
   const event = new KeyboardEvent('keydown', {
@@ -56,7 +57,7 @@ describe('useFlowchartHotkeys', () => {
   });
 
   it('undoes on Cmd+Z', () => {
-    const node = {
+    const node: FlowchartNode = {
       id: 'n1',
       type: 'process',
       x: 0,

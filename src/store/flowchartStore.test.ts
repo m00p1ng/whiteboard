@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { useFlowchartStore, createDefaultNode } from './flowchartStore';
-import type { FlowchartNode } from '@/types/flowchart';
 
 describe('flowchartStore', () => {
   beforeEach(() => {

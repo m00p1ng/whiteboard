@@ -1,8 +1,15 @@
-import { Undo2, Redo2, Trash2, ZoomIn, ZoomOut, Maximize } from 'lucide-react';
+import { Undo2, Redo2, Trash2, ZoomIn, ZoomOut, Maximize, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useBoardStore } from '@/store/boardStore';
 import { useFlowchartStore } from '@/store/flowchartStore';
 
 export function TopBar() {
+  const currentBoard = useBoardStore((state) =>
+    state.currentBoardId
+      ? state.boards.find((board) => board.id === state.currentBoardId)
+      : undefined
+  );
+  const closeBoard = useBoardStore((state) => state.closeBoard);
   const {
     selection,
     undoStack,
@@ -14,6 +21,7 @@ export function TopBar() {
     setSelection,
     setViewport,
     viewport,
+    reset,
   } = useFlowchartStore();
 
   function handleDelete() {
@@ -37,10 +45,25 @@ export function TopBar() {
     setViewport({ scale: 1, offsetX: 0, offsetY: 0 });
   }
 
+  function handleBack() {
+    closeBoard();
+    reset();
+  }
+
   return (
     <header className="absolute left-3 right-3 top-3 z-20 flex items-center justify-between rounded-lg border bg-background p-2 shadow-md">
       <div className="flex items-center gap-2">
-        <span className="text-sm font-semibold">Flowchart</span>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={handleBack}
+          aria-label="Back to boards"
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+        <span className="truncate text-sm font-semibold">
+          {currentBoard?.name ?? 'Flowchart'}
+        </span>
       </div>
       <div className="flex items-center gap-1">
         <Button variant="ghost" size="icon" onClick={undo} disabled={undoStack.length === 0} aria-label="Undo">

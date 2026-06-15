@@ -1,9 +1,8 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { render } from '@testing-library/react';
 import { BoardPage } from './BoardPage';
 import { useBoardStore } from '@/store/boardStore';
 import { useFlowchartStore } from '@/store/flowchartStore';
-import { vi, beforeEach } from 'vitest';
 
 beforeEach(() => {
   useBoardStore.setState({ boards: [], currentBoardId: null });

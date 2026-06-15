@@ -111,7 +111,6 @@ export function FlowchartCanvas() {
     if (draftEdge) {
       const source = nodes[draftEdge.fromNodeId];
       if (!source) return;
-      const sourcePoint = getPortPoint(source, draftEdge.fromPort);
       const targetSnap = snapPosition(point.x, point.y);
       const preview = computeOrthogonalPath(
         source,

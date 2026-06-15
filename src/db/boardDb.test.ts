@@ -8,7 +8,8 @@ const firstBoard: Board = {
   name: 'First',
   createdAt: 100,
   updatedAt: 100,
-  shapes: {},
+  nodes: {},
+  edges: {},
 };
 
 const secondBoard: Board = {
@@ -16,7 +17,8 @@ const secondBoard: Board = {
   name: 'Second',
   createdAt: 200,
   updatedAt: 200,
-  shapes: {},
+  nodes: {},
+  edges: {},
 };
 
 beforeEach(async () => {
