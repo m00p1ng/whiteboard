@@ -302,13 +302,8 @@ export function FlowchartCanvas() {
   const selectedEdgePoints = selectedEdge
     ? getEdgePoints(selectedEdge, nodes)
     : null;
-
-  useEffect(() => {
-    if (!selectedEdgeId || !edges[selectedEdgeId]) {
-      setEdgePreview(null);
-      edgeEditBase.current = null;
-    }
-  }, [edges, selectedEdgeId]);
+  const activeEdgePreview =
+    edgePreview?.edgeId === selectedEdgeId ? edgePreview : null;
 
   function getEditBase() {
     if (!selectedEdge || !selectedEdgePoints) return null;
@@ -476,8 +471,8 @@ export function FlowchartCanvas() {
               nodes={nodes}
               isSelected={edge.id === selectedEdgeId}
               previewPoints={
-                edgePreview?.edgeId === edge.id
-                  ? edgePreview.points
+                activeEdgePreview?.edgeId === edge.id
+                  ? activeEdgePreview.points
                   : undefined
               }
               onClick={() => setSelection({ type: 'edge', id: edge.id })}
@@ -507,13 +502,13 @@ export function FlowchartCanvas() {
           {selectedEdge && selectedEdgePoints && (
             <EdgeHandles
               points={
-                edgePreview?.edgeId === selectedEdge.id
-                  ? edgePreview.points
+                activeEdgePreview?.edgeId === selectedEdge.id
+                  ? activeEdgePreview.points
                   : selectedEdgePoints
               }
               waypoints={
-                edgePreview?.edgeId === selectedEdge.id
-                  ? edgePreview.waypoints
+                activeEdgePreview?.edgeId === selectedEdge.id
+                  ? activeEdgePreview.waypoints
                   : selectedEdge.waypoints ??
                     getManualWaypoints(selectedEdgePoints)
               }
