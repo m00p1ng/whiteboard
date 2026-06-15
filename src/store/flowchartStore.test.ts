@@ -83,6 +83,41 @@ describe('flowchartStore', () => {
     expect(Object.values(useFlowchartStore.getState().edges)).toHaveLength(0);
   });
 
+  it('produces new nodes and edges references on mutations', () => {
+    const a = createDefaultNode('process', 0, 0);
+    const b = createDefaultNode('process', 200, 0);
+    const { addNode, addEdge, removeNode, undo, redo } =
+      useFlowchartStore.getState();
+
+    addNode(a);
+    addNode(b);
+    addEdge(a.id, 'right', b.id, 'left');
+
+    const nodesAfterAdd = useFlowchartStore.getState().nodes;
+    const edgesAfterAdd = useFlowchartStore.getState().edges;
+
+    removeNode(a.id);
+
+    const nodesAfterRemove = useFlowchartStore.getState().nodes;
+    const edgesAfterRemove = useFlowchartStore.getState().edges;
+
+    expect(nodesAfterRemove).not.toBe(nodesAfterAdd);
+    expect(edgesAfterRemove).not.toBe(edgesAfterAdd);
+
+    undo();
+
+    const nodesAfterUndo = useFlowchartStore.getState().nodes;
+    const edgesAfterUndo = useFlowchartStore.getState().edges;
+
+    expect(nodesAfterUndo).not.toBe(nodesAfterRemove);
+    expect(edgesAfterUndo).not.toBe(edgesAfterRemove);
+
+    redo();
+
+    expect(useFlowchartStore.getState().nodes).not.toBe(nodesAfterUndo);
+    expect(useFlowchartStore.getState().edges).not.toBe(edgesAfterUndo);
+  });
+
   it('undoes and redoes', () => {
     const node = createDefaultNode('process', 0, 0);
     const { addNode, undo, redo } = useFlowchartStore.getState();

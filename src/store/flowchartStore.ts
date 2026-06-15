@@ -125,30 +125,48 @@ export const useFlowchartStore = create<FlowchartState & FlowchartActions>(
     ...initialState,
 
     execute: (command) => {
-      command.do(get());
-      set((state) => ({
-        undoStack: [...state.undoStack, command],
+      const state = get();
+      const nextNodes = { ...state.nodes };
+      const nextEdges = { ...state.edges };
+      command.do({ nodes: nextNodes, edges: nextEdges });
+      set((current) => ({
+        ...state,
+        nodes: nextNodes,
+        edges: nextEdges,
+        undoStack: [...current.undoStack, command],
         redoStack: [],
       }));
     },
 
     undo: () => {
-      const command = get().undoStack.at(-1);
+      const state = get();
+      const command = state.undoStack.at(-1);
       if (!command) return;
-      command.undo(get());
-      set((state) => ({
-        undoStack: state.undoStack.slice(0, -1),
-        redoStack: [...state.redoStack, command],
+      const nextNodes = { ...state.nodes };
+      const nextEdges = { ...state.edges };
+      command.undo({ nodes: nextNodes, edges: nextEdges });
+      set((current) => ({
+        ...state,
+        nodes: nextNodes,
+        edges: nextEdges,
+        undoStack: current.undoStack.slice(0, -1),
+        redoStack: [...current.redoStack, command],
       }));
     },
 
     redo: () => {
-      const command = get().redoStack.at(-1);
+      const state = get();
+      const command = state.redoStack.at(-1);
       if (!command) return;
-      command.do(get());
-      set((state) => ({
-        undoStack: [...state.undoStack, command],
-        redoStack: state.redoStack.slice(0, -1),
+      const nextNodes = { ...state.nodes };
+      const nextEdges = { ...state.edges };
+      command.do({ nodes: nextNodes, edges: nextEdges });
+      set((current) => ({
+        ...state,
+        nodes: nextNodes,
+        edges: nextEdges,
+        undoStack: [...current.undoStack, command],
+        redoStack: current.redoStack.slice(0, -1),
       }));
     },
 
