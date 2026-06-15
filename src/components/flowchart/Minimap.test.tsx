@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { act, render } from '@testing-library/react';
+import { act, render, fireEvent } from '@testing-library/react';
 import { Minimap } from './Minimap';
 import { useFlowchartStore } from '@/store/flowchartStore';
 
@@ -114,4 +114,71 @@ describe('Minimap', () => {
 
     expect(container.querySelector('canvas')).toBeTruthy();
   });
+});
+
+function getMinimapTransform(nodes: Record<string, { x: number; y: number; width: number; height: number }>) {
+  const nodeList = Object.values(nodes);
+  const minX = Math.min(...nodeList.map((n) => n.x));
+  const minY = Math.min(...nodeList.map((n) => n.y));
+  const maxX = Math.max(...nodeList.map((n) => n.x + n.width));
+  const maxY = Math.max(...nodeList.map((n) => n.y + n.height));
+  const graphWidth = Math.max(maxX - minX, 1);
+  const graphHeight = Math.max(maxY - minY, 1);
+  const scale = Math.min(144 / graphWidth, 104 / graphHeight);
+  return { scale, offsetX: 8 - minX * scale, offsetY: 8 - minY * scale };
+}
+
+function mockCanvasRect(canvas: HTMLCanvasElement) {
+  Object.defineProperty(canvas, 'getBoundingClientRect', {
+    value: () => ({ left: 0, top: 0, width: 160, height: 120 }),
+    configurable: true,
+  });
+}
+
+it('pans the viewport when the blue rectangle is dragged', () => {
+  const nodes = {
+    n1: { id: 'n1', type: 'process' as const, x: 0, y: 0, width: 1000, height: 500, style: {} },
+    n2: { id: 'n2', type: 'process' as const, x: 1200, y: 0, width: 100, height: 100, style: {} },
+  };
+  useFlowchartStore.setState({ nodes, viewport: { scale: 1, offsetX: 0, offsetY: 0 } });
+  const { container } = render(<Minimap />);
+  const canvas = container.querySelector('canvas')!;
+  mockCanvasRect(canvas);
+  const { scale, offsetX: mx, offsetY: my } = getMinimapTransform(nodes);
+
+  const startWorldX = 300;
+  const startPixelX = mx + startWorldX * scale;
+  const startPixelY = my + 50 * scale;
+  const endPixelX = startPixelX + 50;
+
+  fireEvent.pointerDown(canvas, { clientX: startPixelX, clientY: startPixelY });
+  fireEvent.pointerMove(canvas, { clientX: endPixelX, clientY: startPixelY });
+  fireEvent.pointerUp(canvas, { clientX: endPixelX, clientY: startPixelY });
+
+  const viewport = useFlowchartStore.getState().viewport;
+  const expectedOffsetX = -(50 / scale) * viewport.scale;
+  expect(viewport.offsetX).toBeCloseTo(expectedOffsetX, 0);
+});
+
+it('centers the viewport on the clicked world point', () => {
+  const nodes = {
+    n1: { id: 'n1', type: 'process' as const, x: 0, y: 0, width: 1000, height: 500, style: {} },
+    n2: { id: 'n2', type: 'process' as const, x: 1200, y: 0, width: 100, height: 100, style: {} },
+  };
+  useFlowchartStore.setState({ nodes, viewport: { scale: 1, offsetX: 0, offsetY: 0 } });
+  const { container } = render(<Minimap />);
+  const canvas = container.querySelector('canvas')!;
+  mockCanvasRect(canvas);
+  const { scale, offsetX: mx, offsetY: my } = getMinimapTransform(nodes);
+
+  const clickWorldX = 600;
+  const clickWorldY = 200;
+  const clickPixelX = mx + clickWorldX * scale;
+  const clickPixelY = my + clickWorldY * scale;
+
+  fireEvent.click(canvas, { clientX: clickPixelX, clientY: clickPixelY });
+
+  const viewport = useFlowchartStore.getState().viewport;
+  expect(viewport.offsetX).toBeCloseTo(-clickWorldX + 500, 0);
+  expect(viewport.offsetY).toBeCloseTo(-clickWorldY + 400, 0);
 });
