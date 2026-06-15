@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { render } from '@testing-library/react';
+import { act, render } from '@testing-library/react';
 import { BoardPage } from './BoardPage';
 import { useBoardStore } from '@/store/boardStore';
 import { useFlowchartStore } from '@/store/flowchartStore';
@@ -31,5 +31,45 @@ describe('BoardPage', () => {
     useBoardStore.getState().openBoard(id);
     const { container } = render(<BoardPage />);
     expect(container.querySelector('canvas')).toBeTruthy();
+  });
+
+  it('restores the saved viewport when a board is opened', () => {
+    const id = useBoardStore.getState().createBoard('Test');
+    useBoardStore.setState({
+      boards: [
+        {
+          id,
+          name: 'Test',
+          createdAt: 1,
+          updatedAt: 2,
+          nodes: {},
+          edges: {},
+          viewport: { scale: 1.5, offsetX: -100, offsetY: -50 },
+        },
+      ],
+    });
+    useBoardStore.getState().openBoard(id);
+
+    render(<BoardPage />);
+
+    expect(useFlowchartStore.getState().viewport).toEqual({
+      scale: 1.5,
+      offsetX: -100,
+      offsetY: -50,
+    });
+  });
+
+  it('saves viewport changes back to the board', () => {
+    const id = useBoardStore.getState().createBoard('Test');
+    useBoardStore.getState().openBoard(id);
+
+    render(<BoardPage />);
+
+    act(() => {
+      useFlowchartStore.getState().setViewport({ scale: 2, offsetX: -300, offsetY: -200 });
+    });
+
+    const board = useBoardStore.getState().boards.find((b) => b.id === id);
+    expect(board?.viewport).toEqual({ scale: 2, offsetX: -300, offsetY: -200 });
   });
 });

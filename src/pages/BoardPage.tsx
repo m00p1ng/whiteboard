@@ -35,14 +35,20 @@ export function BoardPage() {
     useFlowchartStore.setState({
       nodes: board.nodes,
       edges: board.edges,
+      viewport: board.viewport ?? { scale: 1, offsetX: 0, offsetY: 0 },
     });
 
     return useFlowchartStore.subscribe((state, previousState) => {
       if (
         state.nodes !== previousState.nodes ||
-        state.edges !== previousState.edges
+        state.edges !== previousState.edges ||
+        state.viewport !== previousState.viewport
       ) {
-        saveCurrentBoard({ nodes: state.nodes, edges: state.edges });
+        saveCurrentBoard({
+          nodes: state.nodes,
+          edges: state.edges,
+          viewport: state.viewport,
+        });
       }
     });
   }, [currentBoardId, saveCurrentBoard]);
