@@ -5,6 +5,7 @@ import {
   createMoveNodeCommand,
   createAddEdgeCommand,
   createUpdateEdgeCommand,
+  createReorderNodesCommand,
 } from './flowchartCommands';
 import type { FlowchartEdge, FlowchartGraph, FlowchartNode } from '@/types/flowchart';
 
@@ -115,5 +116,33 @@ describe('flowchartCommands', () => {
       toPort: 'left',
       waypoints: [{ x: 120, y: 40 }],
     });
+  });
+
+  it('reorders nodes and restores the original order', () => {
+    const n1: FlowchartNode = {
+      id: 'n1',
+      type: 'process',
+      x: 0,
+      y: 0,
+      width: 100,
+      height: 60,
+      style: {},
+    };
+    const n2: FlowchartNode = { ...n1, id: 'n2' };
+    const n3: FlowchartNode = { ...n1, id: 'n3' };
+    const state: FlowchartGraph = {
+      nodes: { n1, n2, n3 },
+      edges: {},
+    };
+    const cmd = createReorderNodesCommand(
+      ['n1', 'n2', 'n3'],
+      ['n3', 'n1', 'n2']
+    );
+
+    cmd.do(state);
+    expect(Object.keys(state.nodes)).toEqual(['n3', 'n1', 'n2']);
+
+    cmd.undo(state);
+    expect(Object.keys(state.nodes)).toEqual(['n1', 'n2', 'n3']);
   });
 });

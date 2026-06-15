@@ -120,3 +120,30 @@ export function createUpdateEdgeCommand(
     },
   };
 }
+
+export function createReorderNodesCommand(
+  prevOrder: string[],
+  nextOrder: string[]
+): Command {
+  return {
+    do: (state) => {
+      reorderNodes(state.nodes, nextOrder);
+    },
+    undo: (state) => {
+      reorderNodes(state.nodes, prevOrder);
+    },
+  };
+}
+
+function reorderNodes(
+  nodes: Record<string, FlowchartNode>,
+  order: string[]
+): void {
+  const entries = order.map((id) => [id, nodes[id]] as const);
+  for (const id of Object.keys(nodes)) {
+    delete nodes[id];
+  }
+  for (const [id, node] of entries) {
+    if (node) nodes[id] = node;
+  }
+}
