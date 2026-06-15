@@ -9,11 +9,13 @@ import {
   createUpdateNodeCommand,
 } from '@/utils/flowchartCommands';
 import { getDefaultNodeSize } from '@/utils/portGeometry';
+import { normalizeOrthogonalPoints } from '@/utils/orthogonalRouter';
 import type {
   Command,
   FlowchartEdge,
   FlowchartGraph,
   FlowchartNode,
+  FlowchartPoint,
   FlowchartSelection,
   FlowchartTool,
   PortId,
@@ -50,6 +52,13 @@ interface FlowchartActions {
   removeEdge: (id: string) => void;
   updateEdge: (id: string, updates: Partial<FlowchartEdge>) => void;
   updateEdgeStyle: (id: string, style: Partial<FlowchartEdge['style']>) => void;
+  setEdgeWaypoints: (id: string, waypoints: FlowchartPoint[]) => void;
+  reconnectEdge: (
+    id: string,
+    endpoint: 'source' | 'target',
+    nodeId: string,
+    port: PortId
+  ) => void;
   setTool: (tool: FlowchartTool) => void;
   setSelection: (selection: FlowchartSelection) => void;
   setViewport: (viewport: Viewport) => void;
@@ -233,6 +242,46 @@ export const useFlowchartStore = create<FlowchartState & FlowchartActions>(
       const edge = get().edges[id];
       if (!edge) return;
       get().updateEdge(id, { style: { ...edge.style, ...style } });
+    },
+
+    setEdgeWaypoints: (id, waypoints) => {
+      const edge = get().edges[id];
+      if (!edge) return;
+      const normalized = normalizeOrthogonalPoints(
+        waypoints.map((point) => ({ ...point }))
+      );
+      const next = normalized.length > 0 ? normalized : undefined;
+      if (JSON.stringify(edge.waypoints) === JSON.stringify(next)) return;
+      get().updateEdge(id, { waypoints: next });
+    },
+
+    reconnectEdge: (id, endpoint, nodeId, port) => {
+      const { edges, nodes } = get();
+      const edge = edges[id];
+      if (!edge || !nodes[nodeId]) return;
+
+      const candidate =
+        endpoint === 'source'
+          ? { ...edge, fromNodeId: nodeId, fromPort: port }
+          : { ...edge, toNodeId: nodeId, toPort: port };
+      if (candidate.fromNodeId === candidate.toNodeId) return;
+
+      const duplicate = Object.values(edges).some(
+        (other) =>
+          other.id !== id &&
+          other.fromNodeId === candidate.fromNodeId &&
+          other.fromPort === candidate.fromPort &&
+          other.toNodeId === candidate.toNodeId &&
+          other.toPort === candidate.toPort
+      );
+      if (duplicate) return;
+
+      get().updateEdge(
+        id,
+        endpoint === 'source'
+          ? { fromNodeId: nodeId, fromPort: port }
+          : { toNodeId: nodeId, toPort: port }
+      );
     },
 
     setTool: (tool) => set({ tool }),

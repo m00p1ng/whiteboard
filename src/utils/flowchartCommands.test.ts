@@ -4,6 +4,7 @@ import {
   createRemoveNodeCommand,
   createMoveNodeCommand,
   createAddEdgeCommand,
+  createUpdateEdgeCommand,
 } from './flowchartCommands';
 import type { FlowchartEdge, FlowchartGraph, FlowchartNode } from '@/types/flowchart';
 
@@ -74,5 +75,45 @@ describe('flowchartCommands', () => {
     expect(state.edges['e1']).toBeDefined();
     cmd.undo(state);
     expect(state.edges['e1']).toBeUndefined();
+  });
+
+  it('updates and restores edge geometry', () => {
+    const edge: FlowchartEdge = {
+      id: 'e1',
+      fromNodeId: 'a',
+      toNodeId: 'b',
+      fromPort: 'right',
+      toPort: 'left',
+      waypoints: [{ x: 120, y: 40 }],
+      style: {},
+    };
+    const state: FlowchartGraph = { nodes: {}, edges: { e1: edge } };
+    const command = createUpdateEdgeCommand(
+      'e1',
+      {
+        toNodeId: 'b',
+        toPort: 'left',
+        waypoints: [{ x: 120, y: 40 }],
+      },
+      {
+        toNodeId: 'c',
+        toPort: 'top',
+        waypoints: [{ x: 180, y: 80 }],
+      }
+    );
+
+    command.do(state);
+    expect(state.edges.e1).toMatchObject({
+      toNodeId: 'c',
+      toPort: 'top',
+      waypoints: [{ x: 180, y: 80 }],
+    });
+
+    command.undo(state);
+    expect(state.edges.e1).toMatchObject({
+      toNodeId: 'b',
+      toPort: 'left',
+      waypoints: [{ x: 120, y: 40 }],
+    });
   });
 });

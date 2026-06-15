@@ -1,5 +1,37 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { useFlowchartStore, createDefaultNode } from './flowchartStore';
+import type { FlowchartEdge, FlowchartNode } from '@/types/flowchart';
+
+const nodeA: FlowchartNode = {
+  id: 'a',
+  type: 'process',
+  x: 0,
+  y: 0,
+  width: 100,
+  height: 60,
+  style: {},
+};
+const nodeB: FlowchartNode = { ...nodeA, id: 'b', x: 200 };
+const nodeC: FlowchartNode = { ...nodeA, id: 'c', x: 400 };
+
+function seedEdge(overrides: Partial<FlowchartEdge> = {}) {
+  const edge: FlowchartEdge = {
+    id: 'e1',
+    fromNodeId: 'a',
+    fromPort: 'right',
+    toNodeId: 'b',
+    toPort: 'left',
+    style: {},
+    ...overrides,
+  };
+  useFlowchartStore.setState({
+    nodes: { a: nodeA, b: nodeB, c: nodeC },
+    edges: { e1: edge },
+    selection: { type: 'edge', id: 'e1' },
+    undoStack: [],
+    redoStack: [],
+  });
+}
 
 describe('flowchartStore', () => {
   beforeEach(() => {
@@ -71,5 +103,72 @@ describe('flowchartStore', () => {
 
   it('defaults showGrid from localStorage', () => {
     expect(useFlowchartStore.getState().showGrid).toBe(true);
+  });
+
+  it('updates waypoints with undo and redo', () => {
+    seedEdge();
+
+    useFlowchartStore
+      .getState()
+      .setEdgeWaypoints('e1', [{ x: 140, y: 90 }]);
+    expect(useFlowchartStore.getState().edges.e1.waypoints).toEqual([
+      { x: 140, y: 90 },
+    ]);
+
+    useFlowchartStore.getState().undo();
+    expect(useFlowchartStore.getState().edges.e1.waypoints).toBeUndefined();
+
+    useFlowchartStore.getState().redo();
+    expect(useFlowchartStore.getState().edges.e1.waypoints).toEqual([
+      { x: 140, y: 90 },
+    ]);
+  });
+
+  it('clears waypoints when no manual bends remain', () => {
+    seedEdge({ waypoints: [{ x: 140, y: 90 }] });
+
+    useFlowchartStore.getState().setEdgeWaypoints('e1', []);
+
+    expect(useFlowchartStore.getState().edges.e1.waypoints).toBeUndefined();
+  });
+
+  it('reconnects one endpoint and preserves waypoints', () => {
+    seedEdge({ waypoints: [{ x: 140, y: 90 }] });
+
+    useFlowchartStore.getState().reconnectEdge('e1', 'target', 'c', 'top');
+
+    expect(useFlowchartStore.getState().edges.e1).toMatchObject({
+      toNodeId: 'c',
+      toPort: 'top',
+      waypoints: [{ x: 140, y: 90 }],
+    });
+  });
+
+  it('rejects self and duplicate reconnections without history', () => {
+    seedEdge();
+    useFlowchartStore.setState((state) => ({
+      edges: {
+        ...state.edges,
+        e2: {
+          id: 'e2',
+          fromNodeId: 'a',
+          fromPort: 'right',
+          toNodeId: 'c',
+          toPort: 'left',
+          style: {},
+        },
+      },
+    }));
+    const before = useFlowchartStore.getState().undoStack.length;
+
+    useFlowchartStore
+      .getState()
+      .reconnectEdge('e1', 'target', 'a', 'left');
+    useFlowchartStore
+      .getState()
+      .reconnectEdge('e1', 'target', 'c', 'left');
+
+    expect(useFlowchartStore.getState().edges.e1.toNodeId).toBe('b');
+    expect(useFlowchartStore.getState().undoStack).toHaveLength(before);
   });
 });
