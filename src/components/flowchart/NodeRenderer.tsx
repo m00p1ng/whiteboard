@@ -33,6 +33,7 @@ export function NodeRenderer({
   const strokeWidth = style.strokeWidth ?? 2;
   const fontSize = style.fontSize ?? 14;
   const textColor = style.textColor ?? '#0f172a';
+  const fontFamily = style.fontFamily ?? 'Inter';
   const path = buildShapePath(node.type, width, height);
 
   return (
@@ -102,6 +103,7 @@ export function NodeRenderer({
           text={label}
           fontSize={fontSize}
           fill={textColor}
+          fontFamily={fontFamily}
           align="center"
           verticalAlign="middle"
           wrap="word"
