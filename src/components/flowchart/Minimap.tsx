@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useFlowchartStore } from '@/store/flowchartStore';
 
 const WIDTH = 160;
@@ -9,16 +9,36 @@ export function Minimap() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { nodes, edges, viewport } = useFlowchartStore();
 
+  const nodeList = useMemo(() => Object.values(nodes), [nodes]);
+
+  const visibleWorld = {
+    x: -viewport.offsetX / viewport.scale,
+    y: -viewport.offsetY / viewport.scale,
+    width: window.innerWidth / viewport.scale,
+    height: window.innerHeight / viewport.scale,
+  };
+
+  const allNodesVisible =
+    nodeList.length > 0 &&
+    nodeList.every(
+      (node) =>
+        node.x >= visibleWorld.x &&
+        node.y >= visibleWorld.y &&
+        node.x + node.width <= visibleWorld.x + visibleWorld.width &&
+        node.y + node.height <= visibleWorld.y + visibleWorld.height
+    );
+
+  const shouldHide = nodeList.length === 0 || allNodesVisible;
+
   useEffect(() => {
+    if (shouldHide) return;
+
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
     ctx.clearRect(0, 0, WIDTH, HEIGHT);
-
-    const nodeList = Object.values(nodes);
-    if (nodeList.length === 0) return;
 
     let minX = Infinity;
     let minY = Infinity;
@@ -63,7 +83,7 @@ export function Minimap() {
       ctx.fillRect(x, y, node.width * scale, node.height * scale);
     }
 
-    const visibleWorld = {
+    const effectVisibleWorld = {
       x: -viewport.offsetX / viewport.scale,
       y: -viewport.offsetY / viewport.scale,
       width: window.innerWidth / viewport.scale,
@@ -73,12 +93,16 @@ export function Minimap() {
     ctx.strokeStyle = '#3b82f6';
     ctx.lineWidth = 2;
     ctx.strokeRect(
-      visibleWorld.x * scale + offsetX,
-      visibleWorld.y * scale + offsetY,
-      visibleWorld.width * scale,
-      visibleWorld.height * scale
+      effectVisibleWorld.x * scale + offsetX,
+      effectVisibleWorld.y * scale + offsetY,
+      effectVisibleWorld.width * scale,
+      effectVisibleWorld.height * scale
     );
-  }, [nodes, edges, viewport]);
+  }, [nodes, edges, viewport, nodeList, shouldHide]);
+
+  if (shouldHide) {
+    return null;
+  }
 
   return (
     <div className="absolute bottom-3 right-3 z-20 rounded-lg border bg-background p-1 shadow-md">
