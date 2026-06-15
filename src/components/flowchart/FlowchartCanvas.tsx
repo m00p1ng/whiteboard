@@ -24,6 +24,8 @@ import { PortHandles } from './PortHandles';
 import { DraftLayer } from './DraftLayer';
 import { LabelEditor } from './LabelEditor';
 import { EdgeHandles } from './EdgeHandles';
+import type { ContextMenuAction } from './CanvasContextMenu';
+import { CanvasContextMenu } from './CanvasContextMenu';
 
 const GRID_SIZE = 20;
 
@@ -45,12 +47,19 @@ export function FlowchartCanvas() {
     liveMoveNode,
     moveNode,
     addEdge,
+    removeNode,
+    removeEdge,
     setSelection,
     setViewport,
     setEditingNodeId,
     updateNode,
     setEdgeWaypoints,
     reconnectEdge,
+    bringNodeToFront,
+    sendNodeToBack,
+    bringNodeForward,
+    sendNodeBackward,
+    duplicateNode,
   } = useFlowchartStore();
 
   const [draftNode, setDraftNode] = useState<FlowchartNode | null>(null);
@@ -70,6 +79,11 @@ export function FlowchartCanvas() {
     edgeId: string;
     points: number[];
     waypoints: FlowchartPoint[];
+  } | null>(null);
+  const [contextMenu, setContextMenu] = useState<{
+    x: number;
+    y: number;
+    target: { type: 'node' | 'edge'; id: string };
   } | null>(null);
 
   useEffect(() => {
@@ -199,6 +213,7 @@ export function FlowchartCanvas() {
   }
 
   function handleStageClick() {
+    setContextMenu(null);
     const point = getPointerPosition();
     if (!point) return;
 
@@ -232,6 +247,7 @@ export function FlowchartCanvas() {
   }
 
   function handleWheel(event: Konva.KonvaEventObject<WheelEvent>) {
+    setContextMenu(null);
     event.evt.preventDefault();
     const stage = stageRef.current;
     if (!stage) return;
@@ -283,6 +299,17 @@ export function FlowchartCanvas() {
 
   const selectedNodeId = selection?.type === 'node' ? selection.id : null;
   const selectedEdgeId = selection?.type === 'edge' ? selection.id : null;
+
+  const nodeOrder = Object.keys(nodes);
+  const contextMenuTarget = contextMenu?.target;
+  const canForward =
+    contextMenuTarget?.type === 'node'
+      ? nodeOrder.indexOf(contextMenuTarget.id) < nodeOrder.length - 1
+      : false;
+  const canBackward =
+    contextMenuTarget?.type === 'node'
+      ? nodeOrder.indexOf(contextMenuTarget.id) > 0
+      : false;
   const selectedEdge = selectedEdgeId ? edges[selectedEdgeId] : undefined;
   const selectedEdgePoints = selectedEdge
     ? getEdgePoints(selectedEdge, nodes)
@@ -424,6 +451,64 @@ export function FlowchartCanvas() {
     edgeEditBase.current = null;
   }
 
+  function handleNodeContextMenu(
+    nodeId: string,
+    event: Konva.KonvaEventObject<PointerEvent>
+  ) {
+    event.evt.preventDefault();
+    setSelection({ type: 'node', id: nodeId });
+    setContextMenu({
+      x: event.evt.clientX,
+      y: event.evt.clientY,
+      target: { type: 'node', id: nodeId },
+    });
+  }
+
+  function handleEdgeContextMenu(
+    edgeId: string,
+    event: Konva.KonvaEventObject<PointerEvent>
+  ) {
+    event.evt.preventDefault();
+    setSelection({ type: 'edge', id: edgeId });
+    setContextMenu({
+      x: event.evt.clientX,
+      y: event.evt.clientY,
+      target: { type: 'edge', id: edgeId },
+    });
+  }
+
+  function handleContextMenuAction(action: ContextMenuAction) {
+    if (!contextMenu) return;
+    const { target } = contextMenu;
+
+    if (target.type === 'node') {
+      switch (action) {
+        case 'front':
+          bringNodeToFront(target.id);
+          break;
+        case 'forward':
+          bringNodeForward(target.id);
+          break;
+        case 'backward':
+          sendNodeBackward(target.id);
+          break;
+        case 'back':
+          sendNodeToBack(target.id);
+          break;
+        case 'duplicate':
+          duplicateNode(target.id);
+          break;
+        case 'delete':
+          removeNode(target.id);
+          break;
+      }
+    } else if (target.type === 'edge' && action === 'delete') {
+      removeEdge(target.id);
+    }
+
+    setContextMenu(null);
+  }
+
   return (
     <div ref={containerRef} className="absolute inset-0">
       <Stage
@@ -461,6 +546,7 @@ export function FlowchartCanvas() {
                   : undefined
               }
               onClick={() => setSelection({ type: 'edge', id: edge.id })}
+              onContextMenu={(event) => handleEdgeContextMenu(edge.id, event)}
             />
           ))}
         </Layer>
@@ -474,6 +560,7 @@ export function FlowchartCanvas() {
               draggable={tool === 'select'}
               onClick={() => setSelection({ type: 'node', id: node.id })}
               onDoubleClick={() => setEditingNodeId(node.id)}
+              onContextMenu={(event) => handleNodeContextMenu(node.id, event)}
               onMouseDown={
                 tool === 'connector'
                   ? () => {
@@ -529,6 +616,18 @@ export function FlowchartCanvas() {
             setEditingNodeId(null);
           }}
           onCancel={() => setEditingNodeId(null)}
+        />
+      )}
+
+      {contextMenu && (
+        <CanvasContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          target={contextMenu.target}
+          canForward={canForward}
+          canBackward={canBackward}
+          onAction={handleContextMenuAction}
+          onClose={() => setContextMenu(null)}
         />
       )}
     </div>

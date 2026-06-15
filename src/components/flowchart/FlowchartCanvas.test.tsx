@@ -75,14 +75,20 @@ vi.mock('./NodeRenderer', () => ({
   NodeRenderer: ({
     node,
     onMouseDown,
+    onContextMenu,
   }: {
     node: FlowchartNode;
     onMouseDown?: () => void;
+    onContextMenu?: (e: { evt: MouseEvent; cancelBubble: boolean }) => void;
   }) => (
     <button
       type="button"
       data-testid={`node-${node.id}`}
       onMouseDown={onMouseDown}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        onContextMenu?.({ evt: e.nativeEvent, cancelBubble: false });
+      }}
     />
   ),
 }));
@@ -95,6 +101,14 @@ vi.mock('./EdgeRenderer', () => ({
         type="button"
         data-testid="edge"
         onClick={() => (props.onClick as (() => void) | undefined)?.()}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          (
+            props.onContextMenu as
+              | ((event: { evt: MouseEvent; cancelBubble: boolean }) => void)
+              | undefined
+          )?.({ evt: e.nativeEvent, cancelBubble: false });
+        }}
       />
     );
   },
@@ -370,5 +384,36 @@ describe('FlowchartCanvas', () => {
     fireEvent.click(screen.getByRole('button', { name: 'mouse up' }));
 
     expect(Object.values(useFlowchartStore.getState().edges)).toHaveLength(0);
+  });
+
+  it('opens context menu on right-clicking a node', () => {
+    seedEditableGraph();
+    render(<FlowchartCanvas />);
+
+    fireEvent.contextMenu(screen.getByTestId('node-a'));
+
+    expect(screen.getByText('Bring to Front')).toBeInTheDocument();
+    expect(screen.getByText('Duplicate')).toBeInTheDocument();
+  });
+
+  it('opens context menu with delete only on right-clicking an edge', () => {
+    seedEditableGraph();
+    render(<FlowchartCanvas />);
+
+    fireEvent.contextMenu(screen.getByTestId('edge'));
+
+    expect(screen.getByText('Delete')).toBeInTheDocument();
+    expect(screen.queryByText('Bring to Front')).not.toBeInTheDocument();
+  });
+
+  it('closes context menu on stage click', () => {
+    seedEditableGraph();
+    render(<FlowchartCanvas />);
+
+    fireEvent.contextMenu(screen.getByTestId('node-a'));
+    expect(screen.getByText('Bring to Front')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'stage click' }));
+    expect(screen.queryByText('Bring to Front')).not.toBeInTheDocument();
   });
 });
