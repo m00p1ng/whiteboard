@@ -90,6 +90,20 @@ describe('orthogonalRouter', () => {
     ]);
   });
 
+  it('preserves collinear points that reverse direction', () => {
+    expect(
+      normalizeOrthogonalPoints([
+        { x: 150, y: 100 },
+        { x: 150, y: 30 },
+        { x: 150, y: 190 },
+      ])
+    ).toEqual([
+      { x: 150, y: 100 },
+      { x: 150, y: 30 },
+      { x: 150, y: 190 },
+    ]);
+  });
+
   it('keeps manual waypoints fixed when a node moves', () => {
     const waypoints = [
       { x: 140, y: 30 },

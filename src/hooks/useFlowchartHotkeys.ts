@@ -27,9 +27,14 @@ export function useFlowchartHotkeys() {
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
+      const target = event.target;
       if (
-        event.target instanceof HTMLInputElement ||
-        event.target instanceof HTMLTextAreaElement
+        target instanceof HTMLElement &&
+        (target instanceof HTMLInputElement ||
+          target instanceof HTMLTextAreaElement ||
+          target instanceof HTMLSelectElement ||
+          target.isContentEditable ||
+          isInsideContentEditable(target))
       ) {
         return;
       }
@@ -103,4 +108,9 @@ export function useFlowchartHotkeys() {
     setViewport,
     viewport,
   ]);
+}
+
+function isInsideContentEditable(target: HTMLElement): boolean {
+  const editable = target.closest('[contenteditable]');
+  return editable?.getAttribute('contenteditable') !== 'false' && !!editable;
 }

@@ -22,16 +22,24 @@ export function normalizeOrthogonalPoints(
       if (index === 0 || index === points.length - 1) return true;
       const previous = points[index - 1];
       const following = points[index + 1];
-      const collinear =
-        (previous.x === point.x && point.x === following.x) ||
-        (previous.y === point.y && point.y === following.y);
-      if (collinear) changed = true;
-      return !collinear;
+      const redundant =
+        (previous.x === point.x &&
+          point.x === following.x &&
+          isBetween(point.y, previous.y, following.y)) ||
+        (previous.y === point.y &&
+          point.y === following.y &&
+          isBetween(point.x, previous.x, following.x));
+      if (redundant) changed = true;
+      return !redundant;
     });
     points = next;
   }
 
   return points;
+}
+
+function isBetween(value: number, start: number, end: number): boolean {
+  return value >= Math.min(start, end) && value <= Math.max(start, end);
 }
 
 export function flattenPoints(points: FlowchartPoint[]): number[] {
