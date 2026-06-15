@@ -8,14 +8,15 @@ import { Button } from '@/components/ui/button';
 import { useFlowchartStore } from '@/store/flowchartStore';
 import { type FlowchartNodeType } from '@/types/flowchart';
 import { SymbolPalette } from './SymbolPalette';
+import { ShapeIcon, ConnectorIcon } from './ShapeIcons';
 
 const PRIMARY_TOOLS: { value: FlowchartNodeType | 'select' | 'connector'; label: string; icon: React.ReactNode }[] = [
-  { value: 'select', label: 'Select', icon: <MousePointer2 className="h-4 w-4" /> },
-  { value: 'process', label: 'Process', icon: <span className="text-xs">▭</span> },
-  { value: 'decision', label: 'Decision', icon: <span className="text-xs">◊</span> },
-  { value: 'data', label: 'Data', icon: <span className="text-xs">▱</span> },
-  { value: 'terminal', label: 'Terminal', icon: <span className="text-xs">⬭</span> },
-  { value: 'connector', label: 'Connector', icon: <span className="text-xs">→</span> },
+  { value: 'select', label: 'Select', icon: <MousePointer2 className="h-5 w-5" /> },
+  { value: 'process', label: 'Process', icon: <ShapeIcon type="process" className="h-5 w-5" /> },
+  { value: 'decision', label: 'Decision', icon: <ShapeIcon type="decision" className="h-5 w-5" /> },
+  { value: 'data', label: 'Data', icon: <ShapeIcon type="data" className="h-5 w-5" /> },
+  { value: 'terminal', label: 'Terminal', icon: <ShapeIcon type="terminal" className="h-5 w-5" /> },
+  { value: 'connector', label: 'Connector', icon: <ConnectorIcon className="h-5 w-5" /> },
 ];
 
 export function LeftToolbar() {
@@ -48,6 +49,7 @@ export function LeftToolbar() {
             key={item.value}
             value={item.value}
             aria-label={item.label}
+            title={item.label}
           >
             {item.icon}
           </ToggleGroupItem>
@@ -58,9 +60,10 @@ export function LeftToolbar() {
         size="icon"
         className="mt-1 h-10 w-10"
         aria-label="More symbols"
+        title="More symbols"
         onClick={() => setPaletteOpen((open) => !open)}
       >
-        <Plus className="h-4 w-4" />
+        <Plus className="h-5 w-5" />
       </Button>
       {paletteOpen && <SymbolPalette onSelect={selectPaletteType} />}
     </aside>
