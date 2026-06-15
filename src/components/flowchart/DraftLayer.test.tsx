@@ -1,8 +1,14 @@
-import { describe, it } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render } from '@testing-library/react';
 import { Stage, Layer } from 'react-konva';
 import { DraftLayer } from './DraftLayer';
 import type { FlowchartNode } from '@/types/flowchart';
+
+const NodeRendererMock = vi.fn<(props: unknown) => null>(() => null);
+
+vi.mock('./NodeRenderer', () => ({
+  NodeRenderer: (props: unknown) => NodeRendererMock(props),
+}));
 
 function Wrapper({ children }: { children: React.ReactNode }) {
   return (
@@ -28,6 +34,18 @@ describe('DraftLayer', () => {
       <Wrapper>
         <DraftLayer draftNode={node} />
       </Wrapper>
+    );
+  });
+
+  it('renders a draft node as non-interactive so clicks pass through to the stage', () => {
+    render(
+      <Wrapper>
+        <DraftLayer draftNode={node} />
+      </Wrapper>
+    );
+
+    expect(NodeRendererMock).toHaveBeenCalledWith(
+      expect.objectContaining({ interactive: false })
     );
   });
 

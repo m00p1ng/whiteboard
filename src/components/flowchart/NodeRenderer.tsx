@@ -4,6 +4,7 @@ import type { FlowchartNode, FlowchartNodeType } from '@/types/flowchart';
 interface NodeRendererProps {
   node: FlowchartNode;
   isSelected?: boolean;
+  interactive?: boolean;
   onClick?: () => void;
   onDoubleClick?: () => void;
   onDragStart?: () => void;
@@ -60,6 +61,7 @@ function buildPath(type: FlowchartNodeType, w: number, h: number): string {
 export function NodeRenderer({
   node,
   isSelected,
+  interactive = true,
   onClick,
   onDoubleClick,
   onDragStart,
@@ -78,7 +80,8 @@ export function NodeRenderer({
     <Group
       x={x}
       y={y}
-      draggable
+      draggable={interactive}
+      listening={interactive}
       onClick={(event) => {
         event.cancelBubble = true;
         onClick?.();

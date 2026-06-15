@@ -30,7 +30,11 @@ function createMockContext(): GridContext & {
     strokes,
     paths,
     beginPath: () => {
-      currentPath = { type: 'minor', moves: [], lines: [] };
+      currentPath = {
+        type: paths.length === 0 ? 'minor' : 'major',
+        moves: [],
+        lines: [],
+      };
       paths.push(currentPath);
     },
     moveTo: (x, y) => {
@@ -41,10 +45,6 @@ function createMockContext(): GridContext & {
     },
     stroke: () => {
       if (!currentPath) return;
-      currentPath.type =
-        currentColor === '#cbd5e1' || currentColor === '#3f3f46'
-          ? 'major'
-          : 'minor';
       strokes.push({ color: currentColor, width: currentWidth });
     },
     fillStrokeShape: () => {},
@@ -126,7 +126,7 @@ describe('GridBackground drawing', () => {
   it('uses light mode colors by default', () => {
     expect(getGridColors()).toEqual({
       minor: '#e2e8f0',
-      major: '#cbd5e1',
+      major: '#e2e8f0',
     });
   });
 
@@ -135,7 +135,7 @@ describe('GridBackground drawing', () => {
     expect(isDarkMode()).toBe(true);
     expect(getGridColors()).toEqual({
       minor: '#27272a',
-      major: '#3f3f46',
+      major: '#27272a',
     });
   });
 
@@ -143,11 +143,10 @@ describe('GridBackground drawing', () => {
     const context = createMockContext();
     drawGrid(context, { scale: 2, offsetX: 0, offsetY: 0 }, 200, 200);
 
-    const minorStroke = context.strokes.find((s) => s.color === '#e2e8f0');
-    const majorStroke = context.strokes.find((s) => s.color === '#cbd5e1');
+    const [minorStroke, majorStroke] = context.strokes;
 
-    expect(minorStroke).toEqual({ color: '#e2e8f0', width: 0.5 });
-    expect(majorStroke).toEqual({ color: '#cbd5e1', width: 0.75 });
+    expect(minorStroke).toEqual({ color: '#e2e8f0', width: 0.25 });
+    expect(majorStroke).toEqual({ color: '#e2e8f0', width: 0.5 });
   });
 });
 

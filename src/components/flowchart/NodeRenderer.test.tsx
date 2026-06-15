@@ -1,16 +1,10 @@
-import { describe, it } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { render } from '@testing-library/react';
+import { useRef } from 'react';
 import { Stage, Layer } from 'react-konva';
+import type { Layer as LayerType } from 'konva/lib/Layer';
 import { NodeRenderer } from './NodeRenderer';
 import type { FlowchartNode } from '@/types/flowchart';
-
-function Wrapper({ children }: { children: React.ReactNode }) {
-  return (
-    <Stage width={400} height={400}>
-      <Layer>{children}</Layer>
-    </Stage>
-  );
-}
 
 describe('NodeRenderer', () => {
   const node: FlowchartNode = {
@@ -26,9 +20,52 @@ describe('NodeRenderer', () => {
 
   it('renders without crashing', () => {
     render(
-      <Wrapper>
-        <NodeRenderer node={node} />
-      </Wrapper>
+      <Stage width={400} height={400}>
+        <Layer>
+          <NodeRenderer node={node} />
+        </Layer>
+      </Stage>
     );
+  });
+
+  it('is interactive by default', () => {
+    const layerRef = { current: null as LayerType | null };
+
+    function Wrapper() {
+      layerRef.current = useRef<LayerType>(null).current;
+      return (
+        <Stage width={400} height={400}>
+          <Layer ref={(el) => { layerRef.current = el; }}>
+            <NodeRenderer node={node} />
+          </Layer>
+        </Stage>
+      );
+    }
+
+    render(<Wrapper />);
+
+    const group = layerRef.current?.children[0];
+    expect(group?.listening()).toBe(true);
+    expect(group?.draggable()).toBe(true);
+  });
+
+  it('is non-interactive when interactive is false', () => {
+    const layerRef = { current: null as LayerType | null };
+
+    function Wrapper() {
+      return (
+        <Stage width={400} height={400}>
+          <Layer ref={(el) => { layerRef.current = el; }}>
+            <NodeRenderer node={node} interactive={false} />
+          </Layer>
+        </Stage>
+      );
+    }
+
+    render(<Wrapper />);
+
+    const group = layerRef.current?.children[0];
+    expect(group?.listening()).toBe(false);
+    expect(group?.draggable()).toBe(false);
   });
 });

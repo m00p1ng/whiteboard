@@ -10,15 +10,7 @@ interface DraftLayerProps {
 export function DraftLayer({ draftNode, draftEdgePoints }: DraftLayerProps) {
   return (
     <>
-      {draftNode && (
-        <NodeRenderer
-          node={draftNode}
-          onClick={() => {}}
-          onDragStart={() => {}}
-          onDragMove={() => {}}
-          onDragEnd={() => {}}
-        />
-      )}
+      {draftNode && <NodeRenderer node={draftNode} interactive={false} />}
       {draftEdgePoints && (
         <>
           <Arrow
