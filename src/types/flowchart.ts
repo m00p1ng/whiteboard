@@ -68,6 +68,7 @@ export interface NodeStyle {
   strokeWidth?: number;
   fontSize?: number;
   textColor?: string;
+  fontFamily?: string;
 }
 
 export interface EdgeStyle {
