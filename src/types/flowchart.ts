@@ -77,6 +77,11 @@ export interface EdgeStyle {
   arrowhead?: 'arrow' | 'open' | 'none';
 }
 
+export interface FlowchartPoint {
+  x: number;
+  y: number;
+}
+
 export interface FlowchartNode {
   id: string;
   type: FlowchartNodeType;
@@ -96,6 +101,7 @@ export interface FlowchartEdge {
   fromPort: PortId;
   toPort: PortId;
   label?: string;
+  waypoints?: FlowchartPoint[];
   style: EdgeStyle;
 }
 

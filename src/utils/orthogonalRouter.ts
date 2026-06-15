@@ -1,12 +1,58 @@
-import type { FlowchartNode, PortId } from '@/types/flowchart';
+import type {
+  FlowchartNode,
+  FlowchartPoint,
+  PortId,
+} from '@/types/flowchart';
 import { getNodeBounds, getPortDirection, getPortPoint } from './portGeometry';
+
+export function normalizeOrthogonalPoints(
+  input: FlowchartPoint[]
+): FlowchartPoint[] {
+  let points = input.filter(
+    (point, index) =>
+      index === 0 ||
+      point.x !== input[index - 1].x ||
+      point.y !== input[index - 1].y
+  );
+
+  let changed = true;
+  while (changed) {
+    changed = false;
+    const next = points.filter((point, index) => {
+      if (index === 0 || index === points.length - 1) return true;
+      const previous = points[index - 1];
+      const following = points[index + 1];
+      const collinear =
+        (previous.x === point.x && point.x === following.x) ||
+        (previous.y === point.y && point.y === following.y);
+      if (collinear) changed = true;
+      return !collinear;
+    });
+    points = next;
+  }
+
+  return points;
+}
+
+export function flattenPoints(points: FlowchartPoint[]): number[] {
+  return points.flatMap((point) => [point.x, point.y]);
+}
+
+export function expandPoints(points: number[]): FlowchartPoint[] {
+  const expanded: FlowchartPoint[] = [];
+  for (let index = 0; index < points.length; index += 2) {
+    expanded.push({ x: points[index], y: points[index + 1] });
+  }
+  return expanded;
+}
 
 export function computeOrthogonalPath(
   source: FlowchartNode,
   sourcePort: PortId,
   target: FlowchartNode,
   targetPort: PortId,
-  margin = 8
+  margin = 8,
+  waypoints?: FlowchartPoint[]
 ): number[] {
   const sourcePoint = getPortPoint(source, sourcePort);
   const targetPoint = getPortPoint(target, targetPort);
@@ -27,6 +73,15 @@ export function computeOrthogonalPath(
 
   if (boundsOverlap(sourceBounds, targetBounds)) {
     return [sourcePoint.x, sourcePoint.y, targetPoint.x, targetPoint.y];
+  }
+
+  if (waypoints?.length) {
+    const interior = buildOrthogonalAnchors([p1, ...waypoints, p2]);
+    return flattenPoints([
+      sourcePoint,
+      ...normalizeOrthogonalPoints(interior),
+      targetPoint,
+    ]);
   }
 
   const points: number[] = [sourcePoint.x, sourcePoint.y];
@@ -51,6 +106,22 @@ export function computeOrthogonalPath(
   }
 
   points.push(targetPoint.x, targetPoint.y);
+  return points;
+}
+
+function buildOrthogonalAnchors(
+  anchors: FlowchartPoint[]
+): FlowchartPoint[] {
+  const points: FlowchartPoint[] = [];
+
+  for (const anchor of anchors) {
+    const previous = points.at(-1);
+    if (previous && previous.x !== anchor.x && previous.y !== anchor.y) {
+      points.push({ x: anchor.x, y: previous.y });
+    }
+    points.push({ ...anchor });
+  }
+
   return points;
 }
 

@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { computeOrthogonalPath } from './orthogonalRouter';
+import {
+  computeOrthogonalPath,
+  normalizeOrthogonalPoints,
+} from './orthogonalRouter';
 import type { FlowchartNode } from '@/types/flowchart';
 
 function makeNode(
@@ -52,5 +55,61 @@ describe('orthogonalRouter', () => {
       const y2 = path[i + 3];
       expect(x1 === x2 || y1 === y2).toBe(true);
     }
+  });
+
+  it('preserves the existing route when no waypoints are provided', () => {
+    expect(computeOrthogonalPath(source, 'right', target, 'left')).toEqual([
+      100, 30, 108, 30, 108, 105, 192, 105, 192, 180, 200, 180,
+    ]);
+  });
+
+  it('routes through fixed world-space waypoints', () => {
+    expect(
+      computeOrthogonalPath(source, 'right', target, 'left', 8, [
+        { x: 140, y: 30 },
+        { x: 140, y: 180 },
+      ])
+    ).toEqual([
+      100, 30, 108, 30, 140, 30, 140, 180, 192, 180, 200, 180,
+    ]);
+  });
+
+  it('removes duplicate and collinear interior points', () => {
+    expect(
+      normalizeOrthogonalPoints([
+        { x: 0, y: 0 },
+        { x: 20, y: 0 },
+        { x: 20, y: 0 },
+        { x: 40, y: 0 },
+        { x: 40, y: 30 },
+      ])
+    ).toEqual([
+      { x: 0, y: 0 },
+      { x: 40, y: 0 },
+      { x: 40, y: 30 },
+    ]);
+  });
+
+  it('keeps manual waypoints fixed when a node moves', () => {
+    const waypoints = [
+      { x: 140, y: 30 },
+      { x: 140, y: 180 },
+    ];
+    const movedSource = { ...source, x: 20, y: 40 };
+
+    const path = computeOrthogonalPath(
+      movedSource,
+      'right',
+      target,
+      'left',
+      8,
+      waypoints
+    );
+
+    expect(path).toContain(140);
+    expect(waypoints).toEqual([
+      { x: 140, y: 30 },
+      { x: 140, y: 180 },
+    ]);
   });
 });
