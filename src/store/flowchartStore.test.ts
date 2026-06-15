@@ -61,6 +61,11 @@ describe('flowchartStore', () => {
     });
   });
 
+  it('defaults new nodes with Inter font family', () => {
+    const node = createDefaultNode('process', 100, 100);
+    expect(node.style.fontFamily).toBe('Inter');
+  });
+
   it('adds a node and selects it', () => {
     const node = createDefaultNode('process', 100, 100);
     useFlowchartStore.getState().addNode(node);

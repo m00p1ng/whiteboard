@@ -116,6 +116,7 @@ export function createDefaultNode(
       strokeWidth: 2,
       fontSize: 14,
       textColor: '#0f172a',
+      fontFamily: 'Inter',
     },
   };
 }
