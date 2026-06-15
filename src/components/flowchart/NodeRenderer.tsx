@@ -1,4 +1,5 @@
 import { Group, Path, Rect, Text } from 'react-konva';
+import type Konva from 'konva';
 import type { FlowchartNode } from '@/types/flowchart';
 import { buildShapePath } from '@/utils/shapePaths';
 
@@ -10,6 +11,7 @@ interface NodeRendererProps {
   onClick?: () => void;
   onDoubleClick?: () => void;
   onMouseDown?: () => void;
+  onContextMenu?: (e: Konva.KonvaEventObject<PointerEvent>) => void;
   onDragStart?: () => void;
   onDragMove?: (x: number, y: number) => void;
   onDragEnd?: (x: number, y: number) => void;
@@ -23,6 +25,7 @@ export function NodeRenderer({
   onClick,
   onDoubleClick,
   onMouseDown,
+  onContextMenu,
   onDragStart,
   onDragMove,
   onDragEnd,
@@ -57,6 +60,10 @@ export function NodeRenderer({
       onMouseDown={(event) => {
         event.cancelBubble = true;
         onMouseDown?.();
+      }}
+      onContextMenu={(event) => {
+        event.cancelBubble = true;
+        onContextMenu?.(event);
       }}
       onDragStart={onDragStart}
       onDragMove={(event) => {

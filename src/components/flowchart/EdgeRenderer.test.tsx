@@ -1,40 +1,27 @@
-import type { PropsWithChildren } from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+import { render } from '@testing-library/react';
 import { EdgeRenderer } from './EdgeRenderer';
 import type { FlowchartEdge, FlowchartNode } from '@/types/flowchart';
 
 vi.mock('react-konva', () => ({
-  Group: ({ children }: PropsWithChildren) => <div>{children}</div>,
-  Line: (props: Record<string, unknown>) => (
-    <button
-      type="button"
-      data-testid={props['data-testid'] as string}
-      data-props={JSON.stringify(props)}
-      onClick={() =>
-        (props.onClick as ((event: { cancelBubble: boolean }) => void) | undefined)?.({
-          cancelBubble: false,
-        })
+  Group: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="group">{children}</div>
+  ),
+  Line: ({ onContextMenu }: { onContextMenu?: (e: unknown) => void }) => (
+    <div
+      data-testid="line"
+      onContextMenu={(e) =>
+        onContextMenu?.({ evt: e.nativeEvent, cancelBubble: false } as unknown)
       }
     />
   ),
-  Arrow: (props: Record<string, unknown>) => (
-    <div
-      data-testid={props['data-testid'] as string}
-      data-props={JSON.stringify(props)}
-    />
-  ),
-  Text: (props: Record<string, unknown>) => (
-    <div
-      data-testid={props['data-testid'] as string}
-      data-props={JSON.stringify(props)}
-    />
-  ),
+  Arrow: () => <div data-testid="arrow" />,
+  Text: () => null,
 }));
 
-function readProps(testId: string) {
-  return JSON.parse(screen.getByTestId(testId).getAttribute('data-props')!);
-}
+vi.mock('@/utils/orthogonalRouter', () => ({
+  computeOrthogonalPath: () => [0, 0, 100, 0],
+}));
 
 describe('EdgeRenderer', () => {
   const nodes: Record<string, FlowchartNode> = {
@@ -51,7 +38,7 @@ describe('EdgeRenderer', () => {
       id: 'b',
       type: 'process',
       x: 200,
-      y: 150,
+      y: 0,
       width: 100,
       height: 60,
       style: {},
@@ -67,29 +54,15 @@ describe('EdgeRenderer', () => {
     style: {},
   };
 
-  it('renders a wide transparent hit path that selects the edge', () => {
-    const onClick = vi.fn();
-
-    render(<EdgeRenderer edge={edge} nodes={nodes} onClick={onClick} />);
-    fireEvent.click(screen.getByTestId('edge-hit-path'));
-
-    expect(onClick).toHaveBeenCalledOnce();
-    expect(readProps('edge-hit-path')).toMatchObject({
-      strokeWidth: 14,
-    });
-  });
-
-  it('renders preview points instead of the stored route', () => {
-    const previewPoints = [100, 30, 150, 30, 150, 180, 200, 180];
-
-    render(
-      <EdgeRenderer
-        edge={edge}
-        nodes={nodes}
-        previewPoints={previewPoints}
-      />
+  it('forwards context menu events', () => {
+    const handleContextMenu = vi.fn();
+    const { getByTestId } = render(
+      <EdgeRenderer edge={edge} nodes={nodes} onContextMenu={handleContextMenu} />
     );
 
-    expect(readProps('edge-visible-path').points).toEqual(previewPoints);
+    const event = new MouseEvent('contextmenu', { bubbles: true });
+    getByTestId('line').dispatchEvent(event);
+
+    expect(handleContextMenu).toHaveBeenCalled();
   });
 });

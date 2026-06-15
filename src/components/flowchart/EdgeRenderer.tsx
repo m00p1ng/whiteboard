@@ -1,4 +1,5 @@
 import { Arrow, Group, Line, Text } from 'react-konva';
+import type Konva from 'konva';
 import type { FlowchartEdge, FlowchartNode } from '@/types/flowchart';
 import { computeOrthogonalPath } from '@/utils/orthogonalRouter';
 
@@ -8,6 +9,7 @@ interface EdgeRendererProps {
   isSelected?: boolean;
   previewPoints?: number[];
   onClick?: () => void;
+  onContextMenu?: (e: Konva.KonvaEventObject<PointerEvent>) => void;
 }
 
 export function EdgeRenderer({
@@ -16,6 +18,7 @@ export function EdgeRenderer({
   isSelected,
   previewPoints,
   onClick,
+  onContextMenu,
 }: EdgeRendererProps) {
   const source = nodes[edge.fromNodeId];
   const target = nodes[edge.toNodeId];
@@ -56,6 +59,10 @@ export function EdgeRenderer({
         onTap={(event) => {
           event.cancelBubble = true;
           onClick?.();
+        }}
+        onContextMenu={(event) => {
+          event.cancelBubble = true;
+          onContextMenu?.(event);
         }}
       />
       <Arrow
