@@ -63,13 +63,20 @@ export function Minimap() {
       ctx.fillRect(x, y, node.width * scale, node.height * scale);
     }
 
+    const visibleWorld = {
+      x: -viewport.offsetX / viewport.scale,
+      y: -viewport.offsetY / viewport.scale,
+      width: window.innerWidth / viewport.scale,
+      height: window.innerHeight / viewport.scale,
+    };
+
     ctx.strokeStyle = '#3b82f6';
     ctx.lineWidth = 2;
     ctx.strokeRect(
-      -viewport.offsetX * scale + offsetX,
-      -viewport.offsetY * scale + offsetY,
-      (WIDTH / viewport.scale) * scale,
-      (HEIGHT / viewport.scale) * scale
+      visibleWorld.x * scale + offsetX,
+      visibleWorld.y * scale + offsetY,
+      visibleWorld.width * scale,
+      visibleWorld.height * scale
     );
   }, [nodes, edges, viewport]);
 
