@@ -51,7 +51,7 @@ export function TopBar() {
   }
 
   return (
-    <header className="absolute left-3 right-3 top-3 z-20 flex items-center justify-between rounded-lg border bg-background p-2 shadow-md">
+    <header className="absolute inset-x-0 top-0 z-20 flex items-center justify-between border bg-background p-2 shadow-md">
       <div className="flex items-center gap-2">
         <Button
           variant="ghost"
@@ -83,11 +83,14 @@ export function TopBar() {
         </Button>
       </div>
       <div className="flex items-center gap-1">
-        <Button variant="ghost" size="icon" onClick={zoomIn} aria-label="Zoom in">
-          <ZoomIn className="h-4 w-4" />
-        </Button>
         <Button variant="ghost" size="icon" onClick={zoomOut} aria-label="Zoom out">
           <ZoomOut className="h-4 w-4" />
+        </Button>
+        <span className="min-w-12 px-2 text-center text-xs tabular-nums text-muted-foreground">
+          {Math.round(viewport.scale * 100)}%
+        </span>
+        <Button variant="ghost" size="icon" onClick={zoomIn} aria-label="Zoom in">
+          <ZoomIn className="h-4 w-4" />
         </Button>
         <Button variant="ghost" size="icon" onClick={fitToContent} aria-label="Fit to content">
           <Maximize className="h-4 w-4" />
